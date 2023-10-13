@@ -29,6 +29,7 @@ fun Route.userRoutes() {
             val newUser = call.receive<User>()
             val addedNewUser = dao.addUser(newUser)
 
+            println(addedNewUser)
             if (addedNewUser) {
                 return@post call.respondText("[SUCCESS] New user created successfully.", status = HttpStatusCode.Created)
             } else {
@@ -43,11 +44,14 @@ fun Route.userRoutes() {
             val id = call.parameters["id"]!!.toInt()
             val userByID = dao.getUsertById(id)
 
+
+
             if (userByID != null) {
-                return@get call.respond(userByID)
+                return@get call.respond(userByID!!)
             } else {
                 return@get call.respondText("[ERROR] No user with the ID ($id) exists.", status = HttpStatusCode.NotFound)
             }
+
         }
 
         delete("/{id?}") {
@@ -65,7 +69,11 @@ fun Route.userRoutes() {
             }
         }
 
-        put {
+        put("/{id?}") {
+            if (call.parameters["id"].isNullOrBlank())
+                return@put call.respondText("[ERROR] No valid ID has been entered.", status = HttpStatusCode.BadRequest)
+
+            val id = call.parameters["id"]!!.toInt()
             val user = User(99,"","","")
             val data = call.receiveMultipart()
 
@@ -73,9 +81,9 @@ fun Route.userRoutes() {
                 when(part){
                     is PartData.FormItem ->{
                         when(part.name){
-                            "id" -> user.userID = part.value.toInt()
-                            "email" -> user.userEmail = part.value
-                            "password" -> user.userPass = part.value
+                            "userID" -> user.userID = part.value.toInt()
+                            "userEmail" -> user.userEmail = part.value
+                            "userPass" -> user.userPass = part.value
                         }
                     }
                     is PartData.FileItem ->{
@@ -89,7 +97,7 @@ fun Route.userRoutes() {
                 }
             }
 
-            val updateUser = dao.updateUser(user)
+            val updateUser = dao.updateUser(user, id)
 
             if (updateUser) {
                 return@put call.respondText("[SUCCESS] User successfully modified.", status = HttpStatusCode.Created)

@@ -37,18 +37,19 @@ class UserDao : UserDaoInterface {
 
     override fun getUsertById(id: Int): User? {
         val sentenceSelect = "SELECT * FROM user_info WHERE userID = $id"
-
+        var userByID = User(99,"","","")
         try {
             val statement = connection.createStatement()
             val result = statement.executeQuery(sentenceSelect)
+            while (result.next()) {
+                val userID = result.getInt(1)
+                val userImage = result.getString(2)
+                val userEmail = result.getString(3)
+                val userPass = result.getString(4)
 
-            val userID = result.getInt(1)
-            val userImage = result.getString(2)
-            val userEmail = result.getString(3)
-            val userPass = result.getString(4)
-
-            //Fill up with the information of a user searched by ID
-            val userByID = User(userID,userImage,userEmail,userPass)
+                //Fill up with the information of a user searched by ID
+                userByID = User(userID,userImage,userEmail,userPass)
+            }
             //We close the sentence and connection to DB
             result.close()
             statement.close()
@@ -64,7 +65,7 @@ class UserDao : UserDaoInterface {
         val sentenceInsert = "INSERT INTO user_info VALUES" +
                              "(DEFAULT, ?, ?, ?)"
 
-        return try {
+        try {
             val preparedInsert = connection.prepareStatement(sentenceInsert)
             user.userID?.let { preparedInsert.setInt(1, it) }
             preparedInsert.setString(2, user.userImage)
@@ -76,17 +77,17 @@ class UserDao : UserDaoInterface {
             //We close the sentence and connection to DB
             preparedInsert.close()
 
-            true
+            return true
         }catch (e: SQLException) {
             println("[ERROR] Failed inserting user | Error Code:${e.errorCode}: ${e.message}")
-            false
+            return false
         }
     }
 
     override fun deleteUser(id: Int): Boolean {
         val sentenceDelete = "DELETE FROM user_info WHERE userID = $id"
 
-        return try {
+        try {
             val preparedDelete = connection.prepareStatement(sentenceDelete)
             //We execute the delete
             val rowsDeleted = preparedDelete.executeQuery()
@@ -94,35 +95,35 @@ class UserDao : UserDaoInterface {
             //We close the sentence and connection to DB
             preparedDelete.close()
 
-            true
+            return true
         }catch (e: SQLException){
             println("[ERROR] Failed deletting user | Error Code:${e.errorCode}: ${e.message}")
-            false
+            return false
         }
     }
 
-    override fun updateUser(user: User): Boolean {
-        val sentenceUpdate = "UPDATE user_info " +
+    override fun updateUser(user: User, id: Int): Boolean {
+        val sentenceUpdate = "UPDATE user_info SET " +
                 "userImage = ?, userEmail = ?,  userPass = ?" +
-                "WHERE userID = ?"
+                "WHERE userID = $id"
 
-        return try {
+        try {
             val preparedUpdate = connection.prepareStatement(sentenceUpdate)
 
             preparedUpdate.setString(1, user.userImage)
             preparedUpdate.setString(2, user.userEmail)
             preparedUpdate.setString(3, user.userPass)
             //WHERE
-            user.userID?.let { preparedUpdate.setInt(4, it) }
+            //user.userID?.let { preparedUpdate.setInt(4, it) }
 
             //We execute the insert
             preparedUpdate.executeUpdate()
             //We close the sentence and connection to DB
             preparedUpdate.close()
-            true
+            return true
         } catch (e: SQLException) {
             println("[ERROR] Failed updating User | Error Code:${e.errorCode}: ${e.message}")
-            false
+            return false
         }
     }
 

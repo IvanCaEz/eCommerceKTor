@@ -9,5 +9,5 @@ interface UserDaoInterface {
     fun getUsertById(id: Int): User?
     fun addUser(user: User): Boolean
     fun deleteUser(id: Int): Boolean
-    fun updateUser(user: User) : Boolean
+    fun updateUser(user: User, id: Int) : Boolean
 }
