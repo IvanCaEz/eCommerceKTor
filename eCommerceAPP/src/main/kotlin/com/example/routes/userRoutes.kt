@@ -90,7 +90,7 @@ fun Route.userRoutes() {
                         user.userImage = "uploads/" + part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
 
                         val fileBytes = part.streamProvider().readBytes() //LEEMOS LA IMAGEN QUE HA PASADO POR EL POST
-                        File(user.userImage).writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
+                        File(user.userImage.toString()).writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
                         //EN BASES DE DATOS SOLO GUARDAR URL del archivo
                     }
                     else -> {}

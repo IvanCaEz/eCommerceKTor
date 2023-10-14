@@ -67,13 +67,12 @@ class UserDao : UserDaoInterface {
 
         try {
             val preparedInsert = connection.prepareStatement(sentenceInsert)
-            user.userID?.let { preparedInsert.setInt(1, it) }
-            preparedInsert.setString(2, user.userImage)
-            preparedInsert.setString(3, user.userEmail)
+            preparedInsert.setString(1, user.userImage)
+            preparedInsert.setString(2, user.userEmail)
             preparedInsert.setString(3, user.userPass)
 
             //We execute the insert
-            preparedInsert.executeQuery()
+            preparedInsert.executeUpdate()
             //We close the sentence and connection to DB
             preparedInsert.close()
 
