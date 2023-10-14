@@ -8,7 +8,7 @@ data class User(
     var userImage : String,
     var userEmail : String,
     var userPass : String,
-    val userSalt: String
+    var userSalt: String
 )
 
 

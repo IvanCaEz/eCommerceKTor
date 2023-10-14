@@ -35,7 +35,7 @@ class UserImpl : UserDao {
     }
 
 
-    override fun getUsertById(id: Int): User? {
+    override fun getUserById(id: Int): User? {
         val sentenceSelect = "SELECT * FROM user_info WHERE userID = $id"
         var userByID = User(99,"","","","")
         try {
@@ -58,6 +58,33 @@ class UserImpl : UserDao {
 
         }catch (e: SQLException){
             println("[ERROR] Getting data from user with ID: $id | Error Code:${e.errorCode}: ${e.message}")
+            return null
+        }
+    }
+
+    override fun getUserByEmail(email: String): User? {
+        val sentenceSelect = "SELECT * FROM user_info WHERE userEmail = '$email'"
+        var userByEmail = User(0,"","","","")
+        try {
+            val statement = connection.createStatement()
+            val result = statement.executeQuery(sentenceSelect)
+            while (result.next()) {
+                val userID = result.getInt(1)
+                val userImage = result.getString(2)
+                val userEmail = result.getString(3)
+                val userPass = result.getString(4)
+                val userSalt = result.getString(5)
+
+                //Fill up with the information of a user searched by ID
+                userByEmail = User(userID,userImage,userEmail,userPass, userSalt)
+            }
+            //We close the sentence and connection to DB
+            result.close()
+            statement.close()
+            return userByEmail
+
+        }catch (e: SQLException){
+            println("[ERROR] Getting data from user with email: $email | Error Code:${e.errorCode}: ${e.message}")
             return null
         }
     }
@@ -88,7 +115,7 @@ class UserImpl : UserDao {
     override fun deleteUser(id: Int): Boolean {
         val sentenceDelete = "DELETE FROM user_info WHERE userID = $id"
 
-        try {
+        return try {
             val preparedDelete = connection.prepareStatement(sentenceDelete)
             //We execute the delete
             val rowsDeleted = preparedDelete.executeQuery()
@@ -96,10 +123,10 @@ class UserImpl : UserDao {
             //We close the sentence and connection to DB
             preparedDelete.close()
 
-            return true
+            true
         }catch (e: SQLException){
             println("[ERROR] Failed deletting user | Error Code:${e.errorCode}: ${e.message}")
-            return false
+            false
         }
     }
 

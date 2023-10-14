@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.database.Connection
 import com.example.plugins.*
 import com.example.security.hashing.HashingImpl
 import com.example.security.token.TokenConfig
@@ -15,6 +16,7 @@ fun main() {
 
 fun Application.module() {
 
+    //Conectamos con la database
     val tokenService = TokenImpl()
 
     val secret = "secret"
