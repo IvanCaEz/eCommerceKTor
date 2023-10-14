@@ -4,10 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class User(
-    var userID: Int? = null,
-    var userImage : String?= null,
-    var userEmail : String?= null,
-    var userPass : String?= null
+    var userID: Int,
+    var userImage : String,
+    var userEmail : String,
+    var userPass : String,
+    val userSalt: String
 )
 
 

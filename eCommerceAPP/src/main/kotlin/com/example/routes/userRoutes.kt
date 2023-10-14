@@ -1,8 +1,11 @@
 package com.example.routes
 
 
-import com.example.dao.*
+import com.example.database.*
 import com.example.model.User
+import com.example.security.hashing.HashingService
+import com.example.security.token.TokenConfig
+import com.example.security.token.TokenService
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
@@ -11,11 +14,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.io.File
 
-fun Route.userRoutes() {
+fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService, tokenConfig: TokenConfig) {
 
-    val dao = UserDao()
+    val dao = UserImpl()
 
-    route("/allusers") {
+    route("/users") {
 
         get {
             val allUsers = dao.getAllUsers()
@@ -74,7 +77,7 @@ fun Route.userRoutes() {
                 return@put call.respondText("[ERROR] No valid ID has been entered.", status = HttpStatusCode.BadRequest)
 
             val id = call.parameters["id"]!!.toInt()
-            val user = User(99,"","","")
+            val user = User(99,"","","","")
             val data = call.receiveMultipart()
 
             data.forEachPart {part ->

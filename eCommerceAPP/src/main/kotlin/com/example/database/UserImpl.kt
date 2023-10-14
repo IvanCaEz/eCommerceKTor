@@ -1,12 +1,11 @@
-package com.example.dao
+package com.example.database
 
-import com.example.interfaces.UserDaoInterface
 import com.example.model.User
 import java.sql.SQLException
 
-class UserDao : UserDaoInterface {
+class UserImpl : UserDao {
 
-    private val connection = ADao.connection!!
+    private val connection = Connection.dbConnection()!!
 
     override fun getAllUsers(): List<User>? {
         val sentenceSelect = "SELECT * FROM user_info"
@@ -20,9 +19,10 @@ class UserDao : UserDaoInterface {
                 val userImage = result.getString(2)
                 val userEmail = result.getString(3)
                 val userPass = result.getString(4)
+                val userSalt = result.getString(5)
 
                 //We build a User object and putting data into the mutableList
-                users.add(User(userID,userImage,userEmail,userPass))
+                users.add(User(userID,userImage,userEmail,userPass,userSalt))
             }
             //We close the sentence and connection to DB
             result.close()
@@ -37,7 +37,7 @@ class UserDao : UserDaoInterface {
 
     override fun getUsertById(id: Int): User? {
         val sentenceSelect = "SELECT * FROM user_info WHERE userID = $id"
-        var userByID = User(99,"","","")
+        var userByID = User(99,"","","","")
         try {
             val statement = connection.createStatement()
             val result = statement.executeQuery(sentenceSelect)
@@ -46,9 +46,10 @@ class UserDao : UserDaoInterface {
                 val userImage = result.getString(2)
                 val userEmail = result.getString(3)
                 val userPass = result.getString(4)
+                val userSalt = result.getString(5)
 
                 //Fill up with the information of a user searched by ID
-                userByID = User(userID,userImage,userEmail,userPass)
+                userByID = User(userID,userImage,userEmail,userPass, userSalt)
             }
             //We close the sentence and connection to DB
             result.close()
@@ -63,13 +64,14 @@ class UserDao : UserDaoInterface {
 
     override fun addUser(user: User): Boolean {
         val sentenceInsert = "INSERT INTO user_info VALUES" +
-                             "(DEFAULT, ?, ?, ?)"
+                             "(DEFAULT, ?, ?, ?, ?)"
 
         try {
             val preparedInsert = connection.prepareStatement(sentenceInsert)
             preparedInsert.setString(1, user.userImage)
             preparedInsert.setString(2, user.userEmail)
             preparedInsert.setString(3, user.userPass)
+            preparedInsert.setString(4, user.userSalt)
 
             //We execute the insert
             preparedInsert.executeUpdate()

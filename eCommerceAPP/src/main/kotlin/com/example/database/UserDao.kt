@@ -1,9 +1,9 @@
-package com.example.interfaces
+package com.example.database
 
 
 import com.example.model.User
 
-interface UserDaoInterface {
+interface UserDao {
 
     fun getAllUsers(): List<User>?
     fun getUsertById(id: Int): User?
