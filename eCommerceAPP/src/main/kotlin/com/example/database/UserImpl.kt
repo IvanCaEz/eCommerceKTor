@@ -117,10 +117,9 @@ class UserImpl : UserDao {
 
         return try {
             val preparedDelete = connection.prepareStatement(sentenceDelete)
-            //We execute the delete
-            val rowsDeleted = preparedDelete.executeQuery()
-            println("$rowsDeleted row(s) deleted")
-            //We close the sentence and connection to DB
+            //Execute the delete
+            preparedDelete.executeUpdate()
+            //Close the sentence and connection to DB
             preparedDelete.close()
 
             true
@@ -132,7 +131,7 @@ class UserImpl : UserDao {
 
     override fun updateUser(user: User, id: Int): Boolean {
         val sentenceUpdate = "UPDATE user_info SET " +
-                "userImage = ?, userEmail = ?,  userPass = ?" +
+                "userImage = ?, userEmail = ?,  userPass = ?, userSalt = ?" +
                 "WHERE userID = $id"
 
         try {
@@ -141,12 +140,12 @@ class UserImpl : UserDao {
             preparedUpdate.setString(1, user.userImage)
             preparedUpdate.setString(2, user.userEmail)
             preparedUpdate.setString(3, user.userPass)
-            //WHERE
-            //user.userID?.let { preparedUpdate.setInt(4, it) }
+            preparedUpdate.setString(4, user.userSalt)
 
-            //We execute the insert
+
+            //Execute the insert
             preparedUpdate.executeUpdate()
-            //We close the sentence and connection to DB
+            //Close the sentence and connection to DB
             preparedUpdate.close()
             return true
         } catch (e: SQLException) {
