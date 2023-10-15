@@ -56,7 +56,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
 
         // Creates a new user with an encrypted password
-        post {
+        post("/signup") {
             val request = call.receiveNullable<AuthRequest>() ?: kotlin.run {
                 call.respond(HttpStatusCode.BadRequest)
                 return@post
