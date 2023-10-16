@@ -1,15 +1,15 @@
 package com.example.database
 
-import com.example.model.User
+import com.example.model.UserInfo
 import java.sql.SQLException
 
 class UserImpl : UserDao {
 
     private val connection = Connection.dbConnection()!!
 
-    override fun getAllUsers(): List<User>? {
+    override fun getAllUsers(): List<UserInfo>? {
         val sentenceSelect = "SELECT * FROM user_info"
-        val users = mutableListOf<User>()
+        val userInfos = mutableListOf<UserInfo>()
 
         try {
             val statement = connection.createStatement()
@@ -21,8 +21,8 @@ class UserImpl : UserDao {
                 val userPass = result.getString(4)
                 val userSalt = result.getString(5)
 
-                //We build a User object and putting data into the mutableList
-                users.add(User(userID,userImage,userEmail,userPass,userSalt))
+                //We build a UserInfo object and putting data into the mutableList
+                userInfos.add(UserInfo(userID,userImage,userEmail,userPass,userSalt))
             }
             //We close the sentence and connection to DB
             result.close()
@@ -31,13 +31,13 @@ class UserImpl : UserDao {
         } catch (e: SQLException) {
             println("[ERROR] Getting all users failing | Error Code:${e.errorCode}: ${e.message}")
         }
-            return users.ifEmpty { null }
+            return userInfos.ifEmpty { null }
     }
 
 
-    override fun getUserById(id: Int): User? {
+    override fun getUserById(id: Int): UserInfo? {
         val sentenceSelect = "SELECT * FROM user_info WHERE userID = $id"
-        var userByID = User(99,"","","","")
+        var userInfoByID = UserInfo(99,"","","","")
         try {
             val statement = connection.createStatement()
             val result = statement.executeQuery(sentenceSelect)
@@ -49,12 +49,12 @@ class UserImpl : UserDao {
                 val userSalt = result.getString(5)
 
                 //Fill up with the information of a user searched by ID
-                userByID = User(userID,userImage,userEmail,userPass, userSalt)
+                userInfoByID = UserInfo(userID,userImage,userEmail,userPass, userSalt)
             }
             //We close the sentence and connection to DB
             result.close()
             statement.close()
-            return userByID
+            return userInfoByID
 
         }catch (e: SQLException){
             println("[ERROR] Getting data from user with ID: $id | Error Code:${e.errorCode}: ${e.message}")
@@ -62,9 +62,9 @@ class UserImpl : UserDao {
         }
     }
 
-    override fun getUserByEmail(email: String): User? {
+    override fun getUserByEmail(email: String): UserInfo? {
         val sentenceSelect = "SELECT * FROM user_info WHERE userEmail = '$email'"
-        var userByEmail = User(0,"","","","")
+        var userInfoByEmail = UserInfo(0,"","","","")
         try {
             val statement = connection.createStatement()
             val result = statement.executeQuery(sentenceSelect)
@@ -76,12 +76,12 @@ class UserImpl : UserDao {
                 val userSalt = result.getString(5)
 
                 //Fill up with the information of a user searched by ID
-                userByEmail = User(userID,userImage,userEmail,userPass, userSalt)
+                userInfoByEmail = UserInfo(userID,userImage,userEmail,userPass, userSalt)
             }
             //We close the sentence and connection to DB
             result.close()
             statement.close()
-            return userByEmail
+            return userInfoByEmail
 
         }catch (e: SQLException){
             println("[ERROR] Getting data from user with email: $email | Error Code:${e.errorCode}: ${e.message}")
@@ -89,16 +89,16 @@ class UserImpl : UserDao {
         }
     }
 
-    override fun addUser(user: User): Boolean {
+    override fun addUser(userInfo: UserInfo): Boolean {
         val sentenceInsert = "INSERT INTO user_info VALUES" +
                              "(DEFAULT, ?, ?, ?, ?)"
 
         try {
             val preparedInsert = connection.prepareStatement(sentenceInsert)
-            preparedInsert.setString(1, user.userImage)
-            preparedInsert.setString(2, user.userEmail)
-            preparedInsert.setString(3, user.userPass)
-            preparedInsert.setString(4, user.userSalt)
+            preparedInsert.setString(1, userInfo.userImage)
+            preparedInsert.setString(2, userInfo.userEmail)
+            preparedInsert.setString(3, userInfo.userPass)
+            preparedInsert.setString(4, userInfo.userSalt)
 
             //We execute the insert
             preparedInsert.executeUpdate()
@@ -107,7 +107,7 @@ class UserImpl : UserDao {
 
             return true
         }catch (e: SQLException) {
-            println("[ERROR] Failed inserting user | Error Code:${e.errorCode}: ${e.message}")
+            println("[ERROR] Failed inserting userInfo | Error Code:${e.errorCode}: ${e.message}")
             return false
         }
     }
@@ -129,7 +129,7 @@ class UserImpl : UserDao {
         }
     }
 
-    override fun updateUser(user: User, id: Int): Boolean {
+    override fun updateUser(userInfo: UserInfo, id: Int): Boolean {
         val sentenceUpdate = "UPDATE user_info SET " +
                 "userImage = ?, userEmail = ?,  userPass = ?, userSalt = ?" +
                 "WHERE userID = $id"
@@ -137,10 +137,10 @@ class UserImpl : UserDao {
         try {
             val preparedUpdate = connection.prepareStatement(sentenceUpdate)
 
-            preparedUpdate.setString(1, user.userImage)
-            preparedUpdate.setString(2, user.userEmail)
-            preparedUpdate.setString(3, user.userPass)
-            preparedUpdate.setString(4, user.userSalt)
+            preparedUpdate.setString(1, userInfo.userImage)
+            preparedUpdate.setString(2, userInfo.userEmail)
+            preparedUpdate.setString(3, userInfo.userPass)
+            preparedUpdate.setString(4, userInfo.userSalt)
 
 
             //Execute the insert
@@ -149,7 +149,7 @@ class UserImpl : UserDao {
             preparedUpdate.close()
             return true
         } catch (e: SQLException) {
-            println("[ERROR] Failed updating User | Error Code:${e.errorCode}: ${e.message}")
+            println("[ERROR] Failed updating UserInfo | Error Code:${e.errorCode}: ${e.message}")
             return false
         }
     }

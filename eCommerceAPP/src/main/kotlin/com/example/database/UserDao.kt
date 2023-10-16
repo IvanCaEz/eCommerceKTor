@@ -1,14 +1,14 @@
 package com.example.database
 
 
-import com.example.model.User
+import com.example.model.UserInfo
 
 interface UserDao {
 
-    fun getAllUsers(): List<User>?
-    fun getUserById(id: Int): User?
-    fun getUserByEmail(email: String): User?
-    fun addUser(user: User): Boolean
+    fun getAllUsers(): List<UserInfo>?
+    fun getUserById(id: Int): UserInfo?
+    fun getUserByEmail(email: String): UserInfo?
+    fun addUser(userInfo: UserInfo): Boolean
     fun deleteUser(id: Int): Boolean
-    fun updateUser(user: User, id: Int) : Boolean
+    fun updateUser(userInfo: UserInfo, id: Int) : Boolean
 }

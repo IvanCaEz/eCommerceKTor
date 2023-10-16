@@ -5,12 +5,12 @@ import com.example.database.*
 import com.example.model.AuthRequest
 import com.example.model.AuthResponse
 import com.example.model.User
+import com.example.model.UserInfo
 import com.example.security.hashing.HashingService
 import com.example.security.hashing.SaltedHash
 import com.example.security.token.TokenClaim
 import com.example.security.token.TokenConfig
 import com.example.security.token.TokenService
-import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
@@ -64,13 +64,13 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
             // Encrypts the password provided and creates a new user to store in the DB
             val saltedHash = hashingService.generateSaltedHash(request.password)
-            val newUser = User(0,
+            val newUserInfo = UserInfo(0,
                 "placeholder.jpg",
                 request.email,
                 saltedHash.hash,
                 saltedHash.salt)
 
-            val addedNewUser = dao.addUser(newUser)
+            val addedNewUser = dao.addUser(newUserInfo)
 
             if (addedNewUser) {
                 return@post call.respondText("[SUCCESS] New user created successfully.", status = HttpStatusCode.Created)
@@ -80,11 +80,13 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
 
         authenticate {
-            get("secret") {
+            get("loggedUser") {
                 // hay que mandar Authorization header con Bearer token
                 val principal = call.principal<JWTPrincipal>()
                 val userEmail = principal?.getClaim("userEmail", String::class)
-                call.respond(HttpStatusCode.OK, "$userEmail")
+                val userInfo = dao.getUserByEmail(userEmail!!)!!
+                val user = User(userInfo.userID, userInfo.userImage, userInfo.userEmail )
+                return@get call.respond(HttpStatusCode.OK, user)
             }
             get {
                 val allUsers = dao.getAllUsers()
@@ -129,7 +131,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
                 if (deleteUser) {
                     return@delete call.respondText(
-                        "[SUCCESS] User successfully deleted.",
+                        "[SUCCESS] UserInfo successfully deleted.",
                         status = HttpStatusCode.Created
                     )
                 } else {
@@ -148,27 +150,27 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     )
 
                 val id = call.parameters["id"]!!.toInt()
-                val user = User(99, "", "", "","")
+                val userInfo = UserInfo(99, "", "", "","")
                 val data = call.receiveMultipart()
 
                 data.forEachPart { part ->
                     when (part) {
                         is PartData.FormItem -> {
                             when (part.name) {
-                                "userID" -> user.userID = part.value.toInt()
-                                "userEmail" -> user.userEmail = part.value
-                                "userPass" -> user.userPass = part.value
+                                "userID" -> userInfo.userID = part.value.toInt()
+                                "userEmail" -> userInfo.userEmail = part.value
+                                "userPass" -> userInfo.userPass = part.value
 
                             }
                         }
 
                         is PartData.FileItem -> {
-                            user.userImage =
+                            userInfo.userImage =
                                 "uploads/" + part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
 
                             val fileBytes =
                                 part.streamProvider().readBytes() //LEEMOS LA IMAGEN QUE HA PASADO POR EL POST
-                            File(user.userImage.toString()).writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
+                            File(userInfo.userImage.toString()).writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
                             //EN BASES DE DATOS SOLO GUARDAR URL del archivo
                         }
 
@@ -176,11 +178,11 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     }
                 }
 
-                val updateUser = dao.updateUser(user, id)
+                val updateUser = dao.updateUser(userInfo, id)
 
                 if (updateUser) {
                     return@put call.respondText(
-                        "[SUCCESS] User successfully modified.",
+                        "[SUCCESS] UserInfo successfully modified.",
                         status = HttpStatusCode.Created
                     )
                 } else {
