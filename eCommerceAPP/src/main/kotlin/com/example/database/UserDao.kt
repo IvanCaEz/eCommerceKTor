@@ -10,5 +10,6 @@ interface UserDao {
     fun getUserByEmail(email: String): UserInfo?
     fun addUser(userInfo: UserInfo): Boolean
     fun deleteUser(id: Int): Boolean
-    fun updateUser(userInfo: UserInfo, id: Int) : Boolean
+    fun updateUserInfo(userInfo: UserInfo, id: Int) : Boolean
+    fun updateUserPicture(pictureName: String, id: Int) : Boolean
 }

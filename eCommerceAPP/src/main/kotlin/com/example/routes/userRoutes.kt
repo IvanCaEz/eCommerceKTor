@@ -65,7 +65,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             // Encrypts the password provided and creates a new user to store in the DB
             val saltedHash = hashingService.generateSaltedHash(request.password)
             val newUserInfo = UserInfo(0,
-                "placeholder.jpg",
+                "placeholder.png",
                 request.email,
                 saltedHash.hash,
                 saltedHash.salt)
@@ -82,11 +82,14 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         authenticate {
             get("loggedUser") {
                 // hay que mandar Authorization header con Bearer token
-                val principal = call.principal<JWTPrincipal>()
-                val userEmail = principal?.getClaim("userEmail", String::class)
-                val userInfo = dao.getUserByEmail(userEmail!!)!!
-                val user = User(userInfo.userID, userInfo.userImage, userInfo.userEmail )
-                return@get call.respond(HttpStatusCode.OK, user)
+               call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
+                  dao.getUserByEmail(mail)?.let { userInfo->
+                       val user = User(userInfo.userID, userInfo.userImage, userInfo.userEmail )
+                       println(user)
+                       return@get call.respond(HttpStatusCode.OK, user)
+                   }
+               }
+                return@get call.respond(HttpStatusCode.NotFound)
             }
             get {
                 val allUsers = dao.getAllUsers()
@@ -95,6 +98,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     call.respond(it)
                 } ?: call.respondText("[ERROR] There are no users in the database.", status = HttpStatusCode.NotFound)
             }
+            /*
             get("/{id?}") {
                 if (call.parameters["id"].isNullOrBlank())
                     return@get call.respondText(
@@ -115,7 +119,24 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         status = HttpStatusCode.NotFound
                     )
                 }
+            }
+             */
+            get("{id}/picture"){
+                var userImage: File = File("")
+                val userID = call.parameters["id"]
+                if (userID.isNullOrBlank()) return@get call.respondText("[ERROR] No valid ID has been entered.",
+                    status = HttpStatusCode.BadRequest)
 
+                val userPhoto = dao.getUserById(userID.toInt())!!.userImage
+                userImage = File("eCommerceAPP/src/main/kotlin/com/example/uploads/$userPhoto")
+                println(userPhoto)
+                println(userImage.exists())
+                if (userImage.exists()){
+                    println(userPhoto)
+                    call.respondFile(userImage)
+                } else {
+                    call.respondText("[ERROR] No image found.", status = HttpStatusCode.NotFound)
+                }
             }
 
             delete("/{id?}") {
@@ -131,7 +152,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
                 if (deleteUser) {
                     return@delete call.respondText(
-                        "[SUCCESS] UserInfo successfully deleted.",
+                        "[SUCCESS] User successfully deleted.",
                         status = HttpStatusCode.Created
                     )
                 } else {
@@ -142,52 +163,88 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 }
             }
 
-            put("/{id?}") {
-                if (call.parameters["id"].isNullOrBlank())
+            put("/edit") {
+                val userID = call.parameters["id"]
+
+                if (userID.isNullOrBlank())
                     return@put call.respondText(
                         "[ERROR] No valid ID has been entered.",
                         status = HttpStatusCode.BadRequest
                     )
 
-                val id = call.parameters["id"]!!.toInt()
-                val userInfo = UserInfo(99, "", "", "","")
+                val request = call.receiveNullable<AuthRequest>() ?: kotlin.run {
+                    call.respond(HttpStatusCode.BadRequest)
+                    return@put
+                }
+                val user = dao.getUserById(userID.toInt())
+
+                if (user != null){
+                    val saltedHash = hashingService.generateSaltedHash(request.password)
+                    val updatedUserInfo = UserInfo(userID.toInt(),
+                        user.userImage,
+                        request.email,
+                        saltedHash.hash,
+                        saltedHash.salt)
+                    println(updatedUserInfo)
+
+                    val updateUser = dao.updateUserInfo(updatedUserInfo, userID.toInt())
+                    return@put call.respond(HttpStatusCode.OK, updateUser)
+                    /*if (updateUser) {
+                        call.respondText("[SUCCESS] User $userID successfully modified.")
+                        // Then create a token and return it
+                        val token = tokenService.generate(tokenConfig,
+                            TokenClaim("userEmail", user.userEmail)
+                        )
+                        return@put call.respond(HttpStatusCode.OK, AuthResponse(token))
+                    } else {
+                        return@put call.respondText(
+                            "[ERROR] The user could not be modified.",
+                            status = HttpStatusCode.BadRequest
+                        )
+                    }*/
+                }
+            }
+
+            put("/{id?}/picture") {
+                //update user info in db where mail=(mail from token)
+                val userID = call.parameters["id"]
+                if (userID.isNullOrBlank())
+                    return@put call.respondText(
+                        "[ERROR] No valid ID has been entered.",
+                        status = HttpStatusCode.BadRequest
+                    )
+
                 val data = call.receiveMultipart()
+                var userImage = ""
 
                 data.forEachPart { part ->
                     when (part) {
-                        is PartData.FormItem -> {
-                            when (part.name) {
-                                "userID" -> userInfo.userID = part.value.toInt()
-                                "userEmail" -> userInfo.userEmail = part.value
-                                "userPass" -> userInfo.userPass = part.value
-
-                            }
-                        }
-
+                        is PartData.FormItem -> Unit
                         is PartData.FileItem -> {
-                            userInfo.userImage =
-                                "uploads/" + part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
+
+                             userImage =
+                                "eCommerceAPP/src/main/kotlin/com/example/uploads/" + part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
 
                             val fileBytes =
                                 part.streamProvider().readBytes() //LEEMOS LA IMAGEN QUE HA PASADO POR EL POST
-                            File(userInfo.userImage.toString()).writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
+                            File(userImage).writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
                             //EN BASES DE DATOS SOLO GUARDAR URL del archivo
                         }
 
-                        else -> {}
+                        else -> {Unit}
                     }
                 }
 
-                val updateUser = dao.updateUser(userInfo, id)
+                val updatePicture = dao.updateUserPicture(userImage, userID.toInt())
 
-                if (updateUser) {
+                if (updatePicture) {
                     return@put call.respondText(
-                        "[SUCCESS] UserInfo successfully modified.",
-                        status = HttpStatusCode.Created
+                "[SUCCESS] Picture of user $userID successfully modified.",
+                        status = HttpStatusCode.OK
                     )
                 } else {
                     return@put call.respondText(
-                        "[ERROR] The user could not be modified.",
+                        "[ERROR] The picture could not be modified.",
                         status = HttpStatusCode.BadRequest
                     )
                 }
@@ -195,4 +252,3 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
     }
 }
-
