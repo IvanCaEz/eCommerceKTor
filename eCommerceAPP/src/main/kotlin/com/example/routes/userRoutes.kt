@@ -164,6 +164,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             }
 
             put("/edit") {
+                // Update user info in db where mail = (mail from token)
                 val request = call.receiveNullable<AuthRequest>() ?: kotlin.run {
                     return@put call.respond(HttpStatusCode.BadRequest)
                 }
@@ -180,29 +181,10 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         return@put call.respond(HttpStatusCode.OK, updateUser)
                     }
                 }
-
-
-
-                /*if (user != null){
-
-                    if (updateUser) {
-                        call.respondText("[SUCCESS] User $userID successfully modified.")
-                        // Then create a token and return it
-                        val token = tokenService.generate(tokenConfig,
-                            TokenClaim("userEmail", user.userEmail)
-                        )
-                        return@put call.respond(HttpStatusCode.OK, AuthResponse(token))
-                    } else {
-                        return@put call.respondText(
-                            "[ERROR] The user could not be modified.",
-                            status = HttpStatusCode.BadRequest
-                        )
-                    }
-                }*/
             }
 
             put("/picture") {
-                //update user info in db where mail=(mail from token)
+                // Update user picture in db where mail = (mail from token)
                 var userID = 0
                 call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
                     userID = dao.getUserByEmail(mail)!!.userID
@@ -215,12 +197,11 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         is PartData.FormItem -> Unit
                         is PartData.FileItem -> {
 
-                             userImage =
-                                "eCommerceAPP/src/main/kotlin/com/example/uploads/" + part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
+                             userImage = part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
 
                             val fileBytes =
                                 part.streamProvider().readBytes() //LEEMOS LA IMAGEN QUE HA PASADO POR EL POST
-                            File(userImage).writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
+                            File("eCommerceAPP/src/main/kotlin/com/example/uploads/$userImage").writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
                             //EN BASES DE DATOS SOLO GUARDAR URL del archivo
                         }
 

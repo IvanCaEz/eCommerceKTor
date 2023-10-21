@@ -153,7 +153,7 @@ class UserImpl : UserDao {
     }
 
     override fun updateUserPicture(pictureName: String, id: Int): Boolean {
-        val sentenceUpdate = "UPDATE user_info SET userImage = ? WHERE userID = '$id'"
+        val sentenceUpdate = "UPDATE user_info SET userImage = ? WHERE userID = $id"
 
         return try {
             val preparedUpdate = connection.prepareStatement(sentenceUpdate)
