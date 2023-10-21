@@ -129,10 +129,10 @@ class UserImpl : UserDao {
         }
     }
 
-    override fun updateUserInfo(userInfo: UserInfo, id: Int): Boolean {
+    override fun updateUserInfo(userInfo: UserInfo): Boolean {
         val sentenceUpdate = "UPDATE user_info SET " +
                 "userEmail = ?, userPass = ?, userSalt = ?" +
-                " WHERE userID = $id"
+                " WHERE userID = ?"
 
         try {
             val preparedUpdate = connection.prepareStatement(sentenceUpdate)
@@ -140,7 +140,7 @@ class UserImpl : UserDao {
             preparedUpdate.setString(1, userInfo.userEmail)
             preparedUpdate.setString(2, userInfo.userPass)
             preparedUpdate.setString(3, userInfo.userSalt)
-
+            preparedUpdate.setInt(4, userInfo.userID)
             //Execute the update
             preparedUpdate.executeUpdate()
             //Close the sentence and connection to DB
@@ -153,9 +153,7 @@ class UserImpl : UserDao {
     }
 
     override fun updateUserPicture(pictureName: String, id: Int): Boolean {
-        val sentenceUpdate = "UPDATE user_info SET " +
-                "userImage = ?" +
-                "WHERE userID = $id"
+        val sentenceUpdate = "UPDATE user_info SET userImage = ? WHERE userID = '$id'"
 
         return try {
             val preparedUpdate = connection.prepareStatement(sentenceUpdate)

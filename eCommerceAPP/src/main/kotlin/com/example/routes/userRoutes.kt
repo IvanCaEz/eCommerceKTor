@@ -164,32 +164,28 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             }
 
             put("/edit") {
-                val userID = call.parameters["id"]
-
-                if (userID.isNullOrBlank())
-                    return@put call.respondText(
-                        "[ERROR] No valid ID has been entered.",
-                        status = HttpStatusCode.BadRequest
-                    )
-
                 val request = call.receiveNullable<AuthRequest>() ?: kotlin.run {
-                    call.respond(HttpStatusCode.BadRequest)
-                    return@put
+                    return@put call.respond(HttpStatusCode.BadRequest)
                 }
-                val user = dao.getUserById(userID.toInt())
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
+                    dao.getUserByEmail(mail)?.let { user->
+                        val saltedHash = hashingService.generateSaltedHash(request.password)
+                        val updatedUserInfo = UserInfo(user.userID,
+                            user.userImage,
+                            request.email,
+                            saltedHash.hash,
+                            saltedHash.salt)
+                        println(updatedUserInfo)
+                        val updateUser = dao.updateUserInfo(updatedUserInfo)
+                        return@put call.respond(HttpStatusCode.OK, updateUser)
+                    }
+                }
 
-                if (user != null){
-                    val saltedHash = hashingService.generateSaltedHash(request.password)
-                    val updatedUserInfo = UserInfo(userID.toInt(),
-                        user.userImage,
-                        request.email,
-                        saltedHash.hash,
-                        saltedHash.salt)
-                    println(updatedUserInfo)
 
-                    val updateUser = dao.updateUserInfo(updatedUserInfo, userID.toInt())
-                    return@put call.respond(HttpStatusCode.OK, updateUser)
-                    /*if (updateUser) {
+
+                /*if (user != null){
+
+                    if (updateUser) {
                         call.respondText("[SUCCESS] User $userID successfully modified.")
                         // Then create a token and return it
                         val token = tokenService.generate(tokenConfig,
@@ -201,19 +197,16 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                             "[ERROR] The user could not be modified.",
                             status = HttpStatusCode.BadRequest
                         )
-                    }*/
-                }
+                    }
+                }*/
             }
 
-            put("/{id?}/picture") {
+            put("/picture") {
                 //update user info in db where mail=(mail from token)
-                val userID = call.parameters["id"]
-                if (userID.isNullOrBlank())
-                    return@put call.respondText(
-                        "[ERROR] No valid ID has been entered.",
-                        status = HttpStatusCode.BadRequest
-                    )
-
+                var userID = 0
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
+                    userID = dao.getUserByEmail(mail)!!.userID
+                }
                 val data = call.receiveMultipart()
                 var userImage = ""
 
@@ -235,7 +228,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     }
                 }
 
-                val updatePicture = dao.updateUserPicture(userImage, userID.toInt())
+                val updatePicture = dao.updateUserPicture(userImage, userID)
 
                 if (updatePicture) {
                     return@put call.respondText(
