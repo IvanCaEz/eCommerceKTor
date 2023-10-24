@@ -11,18 +11,18 @@ CREATE TABLE IF NOT EXISTS user_info (
 CREATE TYPE order_state AS ENUM ('COMPLETED', 'ONGOING', 'CANCELLED');
 
 CREATE TABLE IF NOT EXISTS orders (
-  cartID SERIAL, PRIMARY KEY,
-  userID SERIAL FOREIGN KEY references user_info(userID),
+  cartID SERIAL PRIMARY KEY,
+  userID SERIAL REFERENCES user_info(userID),
   productList VARCHAR[] NOT NULL,
-  totalPrice DOUBLE NOT NULL,
-  orderDate VARCHAR(255) NOT NULL
+  totalPrice NUMERIC NOT NULL,
+  orderDate VARCHAR(255) NOT NULL,
   order_state order_state NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS carts (
   cartID SERIAL PRIMARY KEY,
-  userID SERIAL FOREIGN KEY references user_info(userID),
-  productList VARCHAR[] NOT NULL,
+  userID SERIAL REFERENCES user_info(userID),
+  productList VARCHAR[] NOT NULL
 );
 
 

@@ -21,6 +21,6 @@ fun Application.configureRouting(hashingService: HashingService, tokenService: T
         }
 
         userRoutes(hashingService, tokenService, tokenConfig)
-        relationRoutes(hashingService, tokenService, tokenConfig)
+        relationRoutes()
     }
 }
