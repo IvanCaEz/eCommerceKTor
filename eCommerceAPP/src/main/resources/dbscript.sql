@@ -7,3 +7,33 @@ CREATE TABLE IF NOT EXISTS user_info (
   userPass VARCHAR(255) NOT NULL,
   userSalt VARCHAR(255) NOT NULL
 );
+
+CREATE TYPE order_state AS ENUM ('COMPLETED', 'ONGOING', 'CANCELLED');
+
+CREATE TABLE IF NOT EXISTS orders (
+  cartID SERIAL, PRIMARY KEY,
+  userID SERIAL FOREIGN KEY references user_info(userID),
+  productList VARCHAR[] NOT NULL,
+  totalPrice DOUBLE NOT NULL,
+  orderDate VARCHAR(255) NOT NULL
+  order_state order_state NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS carts (
+  cartID SERIAL PRIMARY KEY,
+  userID SERIAL FOREIGN KEY references user_info(userID),
+  productList VARCHAR[] NOT NULL,
+);
+
+
+CREATE SEQUENCE userID_seq
+START 1
+INCREMENT 1;
+
+CREATE SEQUENCE orderID_seq
+START 1
+INCREMENT 1;
+
+CREATE SEQUENCE cartID_seq
+START 1
+INCREMENT 1;
