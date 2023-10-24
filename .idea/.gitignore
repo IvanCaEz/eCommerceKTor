@@ -7,3 +7,6 @@
 /dataSources/
 /dataSources.local.xml
 gradle.xml
+misc.xml
+
+/gradle/
