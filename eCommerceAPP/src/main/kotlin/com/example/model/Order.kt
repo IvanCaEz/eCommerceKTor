@@ -9,5 +9,5 @@ data class Order(
         val productList: List<String>,
         val totalPrice: Double,
         val orderDate: String,
-        val state: OrderStates
+        val state: OrderState
 )

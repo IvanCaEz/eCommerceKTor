@@ -85,7 +85,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
                   dao.getUserByEmail(mail)?.let { userInfo->
                        val user = User(userInfo.userID, userInfo.userImage, userInfo.userEmail )
-                       println(user)
                        return@get call.respond(HttpStatusCode.OK, user)
                    }
                }
@@ -98,29 +97,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     call.respond(it)
                 } ?: call.respondText("[ERROR] There are no users in the database.", status = HttpStatusCode.NotFound)
             }
-            /*
-            get("/{id?}") {
-                if (call.parameters["id"].isNullOrBlank())
-                    return@get call.respondText(
-                        "[ERROR] No valid ID has been entered.",
-                        status = HttpStatusCode.BadRequest
-                    )
 
-                val id = call.parameters["id"]!!.toInt()
-                val userByID = dao.getUserById(id)
-
-
-
-                if (userByID != null) {
-                    return@get call.respond(userByID)
-                } else {
-                    return@get call.respondText(
-                        "[ERROR] No user with the ID ($id) exists.",
-                        status = HttpStatusCode.NotFound
-                    )
-                }
-            }
-             */
             get("{id}/picture"){
                 var userImage: File = File("")
                 val userID = call.parameters["id"]

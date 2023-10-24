@@ -2,18 +2,18 @@ package com.example.database
 
 import com.example.model.Cart
 import com.example.model.Order
-import com.example.model.OrderStates
+import com.example.model.OrderState
 
 class RelationImpl: RelationDao {
-    override fun getOrders(userID: Int): List<Order>? {
+    override fun getOrders(userID: Int): List<Order> {
         TODO("Not yet implemented")
     }
 
-    override fun addOrder(userID: Int): Boolean {
+    override fun addOrder(order: Order): Boolean {
         TODO("Not yet implemented")
     }
 
-    override fun putOrder(orderID: Int, state: OrderStates): Boolean {
+    override fun putOrder(orderID: Int, state: OrderState): Boolean {
         TODO("Not yet implemented")
     }
 
@@ -25,7 +25,7 @@ class RelationImpl: RelationDao {
         TODO("Not yet implemented")
     }
 
-    override fun createCart(userID: Int): Boolean {
+    override fun createCart(cart: Cart): Boolean {
         TODO("Not yet implemented")
     }
 
@@ -36,4 +36,5 @@ class RelationImpl: RelationDao {
     override fun deleteCart(cartID: Int): Boolean {
         TODO("Not yet implemented")
     }
+
 }

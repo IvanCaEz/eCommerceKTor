@@ -1,5 +1,6 @@
 package com.example.plugins
 
+import com.example.routes.relationRoutes
 import com.example.routes.userRoutes
 import com.example.security.hashing.HashingService
 import com.example.security.token.TokenConfig
@@ -20,5 +21,6 @@ fun Application.configureRouting(hashingService: HashingService, tokenService: T
         }
 
         userRoutes(hashingService, tokenService, tokenConfig)
+        relationRoutes(hashingService, tokenService, tokenConfig)
     }
 }
