@@ -3,7 +3,7 @@ package com.example.database
 import com.example.model.UserInfo
 import java.sql.SQLException
 
-class UserImpl : UserDao {
+class UserImpl() : UserDao {
 
     private val connection = Connection.dbConnection()!!
 
@@ -24,7 +24,7 @@ class UserImpl : UserDao {
                 //We build a UserInfo object and putting data into the mutableList
                 userInfos.add(UserInfo(userID,userImage,userEmail,userPass,userSalt))
             }
-            //We close the sentence and connection to DB
+            // Close the sentence
             result.close()
             statement.close()
 
@@ -48,10 +48,10 @@ class UserImpl : UserDao {
                 val userPass = result.getString(4)
                 val userSalt = result.getString(5)
 
-                //Fill up with the information of a user searched by ID
+                // Fill up with the information of a user searched by ID
                 userInfoByID = UserInfo(userID,userImage,userEmail,userPass, userSalt)
             }
-            //We close the sentence and connection to DB
+            // Close the sentence
             result.close()
             statement.close()
             return userInfoByID
@@ -75,10 +75,10 @@ class UserImpl : UserDao {
                 val userPass = result.getString(4)
                 val userSalt = result.getString(5)
 
-                //Fill up with the information of a user searched by ID
+                //Fill up with the information of a user searched by email
                 userInfoByEmail = UserInfo(userID,userImage,userEmail,userPass, userSalt)
             }
-            //We close the sentence and connection to DB
+            // Close the sentence
             result.close()
             statement.close()
             return userInfoByEmail
@@ -100,9 +100,9 @@ class UserImpl : UserDao {
             preparedInsert.setString(3, userInfo.userPass)
             preparedInsert.setString(4, userInfo.userSalt)
 
-            //We execute the insert
+            // Execute the insert
             preparedInsert.executeUpdate()
-            //We close the sentence and connection to DB
+            // Close the sentence
             preparedInsert.close()
 
             return true
@@ -117,9 +117,9 @@ class UserImpl : UserDao {
 
         return try {
             val preparedDelete = connection.prepareStatement(sentenceDelete)
-            //Execute the delete
+            // Execute the delete
             preparedDelete.executeUpdate()
-            //Close the sentence and connection to DB
+            // Close the sentence
             preparedDelete.close()
 
             true
@@ -141,9 +141,9 @@ class UserImpl : UserDao {
             preparedUpdate.setString(2, userInfo.userPass)
             preparedUpdate.setString(3, userInfo.userSalt)
             preparedUpdate.setInt(4, userInfo.userID)
-            //Execute the update
+            // Execute the update
             preparedUpdate.executeUpdate()
-            //Close the sentence and connection to DB
+            // Close the sentence
             preparedUpdate.close()
             return true
         } catch (e: SQLException) {
@@ -158,12 +158,11 @@ class UserImpl : UserDao {
         return try {
             val preparedUpdate = connection.prepareStatement(sentenceUpdate)
 
-
             preparedUpdate.setString(1, pictureName)
 
-            //Execute the update
+            // Execute the update
             preparedUpdate.executeUpdate()
-            //Close the sentence and connection to DB
+            // Close the sentence
             preparedUpdate.close()
             true
         } catch (e: SQLException) {

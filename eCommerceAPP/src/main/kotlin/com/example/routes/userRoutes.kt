@@ -1,6 +1,4 @@
 package com.example.routes
-
-
 import com.example.database.*
 import com.example.model.AuthRequest
 import com.example.model.AuthResponse

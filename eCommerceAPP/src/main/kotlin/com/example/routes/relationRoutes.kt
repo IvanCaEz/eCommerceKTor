@@ -1,5 +1,6 @@
 package com.example.routes
 
+import com.example.database.Connection
 import com.example.database.RelationImpl
 import com.example.database.UserImpl
 import com.example.model.AuthRequest
@@ -48,7 +49,7 @@ fun Route.relationRoutes() {
                     }
                 }
                 // Put order state
-                put("/{orderID}") {
+                put("/{orderID?}") {
                     val orderID = call.parameters["orderID"]
                     if (orderID.isNullOrBlank()) return@put call.respondText("[ERROR] No valid ID has been entered.",
                         status = HttpStatusCode.BadRequest)
@@ -59,7 +60,7 @@ fun Route.relationRoutes() {
                     }
                     val putOrder = relationDao.putOrder(orderID.toInt(), newState)
                     if (putOrder){
-                        return@put call.respondText("[SUCCESS] Order updated to $newState", status = HttpStatusCode.Created)
+                        return@put call.respondText("[SUCCESS] Order updated to $newState", status = HttpStatusCode.OK)
                     } else {
                         return@put call.respondText("[ERROR] Order couldn't be updated", status = HttpStatusCode.BadRequest)
                     }
@@ -104,6 +105,43 @@ fun Route.relationRoutes() {
                         return@post call.respondText("[SUCCESS] Cart created", status = HttpStatusCode.Created)
                     } else {
                         return@post call.respondText("[ERROR] Cart couldn't be created", status = HttpStatusCode.BadRequest)
+                    }
+                }
+                // Update product list of cart
+                put {
+                    val userID = call.parameters["userID"]
+                    if (userID.isNullOrBlank())
+                        return@put call.respondText(
+                            "[ERROR] No valid ID has been entered.",
+                            status = HttpStatusCode.BadRequest
+                        )
+                    val newProductList = call.receiveNullable<List<String>>() ?: kotlin.run {
+                        call.respond(HttpStatusCode.BadRequest)
+                        return@put
+                    }
+                    val updateCart = relationDao.updateCart(userID.toInt(), newProductList)
+
+                    if (updateCart){
+                        return@put call.respondText("[SUCCESS] Cart updated", status = HttpStatusCode.OK)
+                    } else {
+                        return@put call.respondText("[ERROR] Cart couldn't be updated", status = HttpStatusCode.BadRequest)
+                    }
+                }
+
+                delete {
+                    val userID = call.parameters["userID"]
+                    if (userID.isNullOrBlank())
+                        return@delete call.respondText(
+                            "[ERROR] No valid ID has been entered.",
+                            status = HttpStatusCode.BadRequest
+                        )
+                    val cartID = relationDao.getCart(userID.toInt())!!.idCart
+                    val deleteCart = relationDao.deleteCart(cartID)
+
+                    if (deleteCart){
+                        return@delete call.respondText("[SUCCESS] Cart deleted", status = HttpStatusCode.OK)
+                    } else {
+                        return@delete call.respondText("[ERROR] Cart couldn't be deleted", status = HttpStatusCode.BadRequest)
                     }
                 }
             }

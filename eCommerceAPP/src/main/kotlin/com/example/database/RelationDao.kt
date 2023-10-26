@@ -12,8 +12,7 @@ interface RelationDao {
 
     // Cart
     fun getCart(userID: Int): Cart?
-    fun addToCart(userID: Int, productID: String): Boolean
     fun createCart(cart: Cart): Boolean
-    fun removeFromCart(productID: String): Boolean
+    fun updateCart(userID: Int, productList: List<String>): Boolean
     fun deleteCart(cartID: Int): Boolean
 }

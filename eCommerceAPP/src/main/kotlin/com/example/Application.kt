@@ -16,7 +16,6 @@ fun main() {
 
 fun Application.module() {
 
-    //Conectamos con la database
     val tokenService = TokenImpl()
 
     val secret = "secret"
