@@ -120,22 +120,34 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         "[ERROR] No valid ID has been entered.",
                         status = HttpStatusCode.BadRequest
                     )
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
+                    dao.getUserByEmail(mail)?.let { userInfo->
 
-                val id = call.parameters["id"]!!.toInt()
+                        val id = call.parameters["id"]!!.toInt()
 
-                val deleteUser = dao.deleteUser(id)
+                        if (userInfo.userID != id) {
+                            return@delete call.respondText(
+                                "[ERROR] You can't delete other users.",
+                                status = HttpStatusCode.Unauthorized)
+                        }
 
-                if (deleteUser) {
-                    return@delete call.respondText(
-                        "[SUCCESS] User successfully deleted.",
-                        status = HttpStatusCode.Created
-                    )
-                } else {
-                    return@delete call.respondText(
-                        "[ERROR] The user could not be deleted.",
-                        status = HttpStatusCode.BadRequest
-                    )
+                        val deleteUser = dao.deleteUser(id)
+
+                        if (deleteUser) {
+                            return@delete call.respondText(
+                                "[SUCCESS] User successfully deleted.",
+                                status = HttpStatusCode.Created
+                            )
+                        } else {
+                            return@delete call.respondText(
+                                "[ERROR] The user could not be deleted.",
+                                status = HttpStatusCode.BadRequest
+                            )
+                        }
+                    }
                 }
+
+
             }
 
             put("/edit") {
