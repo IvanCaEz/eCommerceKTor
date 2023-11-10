@@ -60,12 +60,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 return@post
             }
 
-            // Checks if the user's email already exists in the DB
-            val userExists = dao.getUserByEmail(request.email)
-
-            if (userExists != null) {
-                return@post call.respondText("[ERROR] The user already exists.", status = HttpStatusCode.BadRequest)
-            }
 
             // Encrypts the password provided and creates a new user to store in the DB
             val saltedHash = hashingService.generateSaltedHash(request.password)
