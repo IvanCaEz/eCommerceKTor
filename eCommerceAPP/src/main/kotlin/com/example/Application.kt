@@ -10,7 +10,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 
 fun main() {
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0", module = Application::module)
+    embeddedServer(Netty, port = 27031, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
 }
 
@@ -19,7 +19,7 @@ fun Application.module() {
     val tokenService = TokenImpl()
 
     val secret = "secret"
-    val issuer = "http://0.0.0.0:8080"
+    val issuer = "http://0.0.0.0:27031"
     val audience = "user"
     val myRealm = "myRealm"
 
