@@ -60,6 +60,13 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 return@post
             }
 
+            // Checks if the user's email already exists in the DB
+            val userExists = dao.getUserByEmail(request.email)
+
+            if (userExists != null) {
+                return@post call.respondText("[ERROR] The user already exists.", status = HttpStatusCode.BadRequest)
+            }
+
             // Encrypts the password provided and creates a new user to store in the DB
             val saltedHash = hashingService.generateSaltedHash(request.password)
             val newUserInfo = UserInfo(0,
@@ -103,7 +110,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     status = HttpStatusCode.BadRequest)
 
                 val userPhoto = dao.getUserById(userID.toInt())!!.userImage
-                userImage = File("eCommerceAPP/src/main/kotlin/com/example/uploads/$userPhoto")
+                userImage = File("uploads/$userPhoto")
                 println(userPhoto)
                 println(userImage.exists())
                 if (userImage.exists()){
@@ -175,40 +182,42 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 var userID = 0
                 call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
                     userID = dao.getUserByEmail(mail)!!.userID
-                }
-                val data = call.receiveMultipart()
-                var userImage = ""
 
-                data.forEachPart { part ->
-                    when (part) {
-                        is PartData.FormItem -> Unit
-                        is PartData.FileItem -> {
+                    val data = call.receiveMultipart()
+                    var userImage = ""
 
-                             userImage = part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
+                    data.forEachPart { part ->
+                        when (part) {
+                            is PartData.FormItem -> Unit
+                            is PartData.FileItem -> {
 
-                            val fileBytes =
-                                part.streamProvider().readBytes() //LEEMOS LA IMAGEN QUE HA PASADO POR EL POST
-                            File("eCommerceAPP/src/main/kotlin/com/example/uploads/$userImage").writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
-                            //EN BASES DE DATOS SOLO GUARDAR URL del archivo
+                                userImage = part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
+
+                                val fileBytes =
+                                    part.streamProvider().readBytes() //LEEMOS LA IMAGEN QUE HA PASADO POR EL POST
+                                File("uploads/$userImage").writeBytes(fileBytes)//GUARDA LA IMAGEN QUE HA PASADO POR EL POST A LA CARPETA "uploads"
+                                //EN BASES DE DATOS SOLO GUARDAR URL del archivo
+                            }
+
+                            else -> {Unit}
                         }
+                    }
 
-                        else -> {Unit}
+                    val updatePicture = dao.updateUserPicture(userImage, userID)
+
+                    if (updatePicture) {
+                        return@put call.respondText(
+                            "[SUCCESS] Picture of user $userID successfully modified.",
+                            status = HttpStatusCode.OK
+                        )
+                    } else {
+                        return@put call.respondText(
+                            "[ERROR] The picture could not be modified.",
+                            status = HttpStatusCode.BadRequest
+                        )
                     }
                 }
 
-                val updatePicture = dao.updateUserPicture(userImage, userID)
-
-                if (updatePicture) {
-                    return@put call.respondText(
-                "[SUCCESS] Picture of user $userID successfully modified.",
-                        status = HttpStatusCode.OK
-                    )
-                } else {
-                    return@put call.respondText(
-                        "[ERROR] The picture could not be modified.",
-                        status = HttpStatusCode.BadRequest
-                    )
-                }
             }
         }
     }
