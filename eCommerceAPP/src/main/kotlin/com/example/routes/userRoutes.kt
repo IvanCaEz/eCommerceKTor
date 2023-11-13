@@ -19,9 +19,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.io.File
 
-fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService, tokenConfig: TokenConfig) {
+fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService, tokenConfig: TokenConfig, dao: UserImpl) {
 
-    val dao = UserImpl()
 
     route("/users") {
         post("/login") {
@@ -59,22 +58,25 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 call.respond(HttpStatusCode.BadRequest)
                 return@post
             }
+            val userExists = dao.getUserByEmail(request.email)
+            if (userExists == null){
+                // Encrypts the password provided and creates a new user to store in the DB
+                val saltedHash = hashingService.generateSaltedHash(request.password)
+                val newUserInfo = UserInfo(0,
+                        "placeholder.png",
+                        request.email,
+                        saltedHash.hash,
+                        saltedHash.salt)
 
+                val addedNewUser = dao.addUser(newUserInfo)
 
-            // Encrypts the password provided and creates a new user to store in the DB
-            val saltedHash = hashingService.generateSaltedHash(request.password)
-            val newUserInfo = UserInfo(0,
-                "placeholder.png",
-                request.email,
-                saltedHash.hash,
-                saltedHash.salt)
-
-            val addedNewUser = dao.addUser(newUserInfo)
-
-            if (addedNewUser) {
-                return@post call.respondText("[SUCCESS] New user created successfully.", status = HttpStatusCode.Created)
+                if (addedNewUser) {
+                    return@post call.respondText("[SUCCESS] New user created successfully.", status = HttpStatusCode.Created)
+                } else {
+                    return@post call.respondText("[ERROR] The new user could not be added.", status = HttpStatusCode.BadRequest)
+                }
             } else {
-                return@post call.respondText("[ERROR] The new user could not be added.", status = HttpStatusCode.BadRequest)
+                return@post call.respondText("[ERROR] There's an existing user with this email associated to.", status = HttpStatusCode.NotAcceptable)
             }
         }
 
@@ -173,10 +175,10 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
             put("/picture") {
                 // Update user picture in db where mail = (mail from token)
-                var userID = 0
                 call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
-                    userID = dao.getUserByEmail(mail)!!.userID
-
+                    val user = dao.getUserByEmail(mail)!!
+                    val oldImage = user.userImage
+                    val userID = user.userID
                     val data = call.receiveMultipart()
                     var userImage = ""
 
@@ -200,8 +202,14 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     val updatePicture = dao.updateUserPicture(userImage, userID)
 
                     if (updatePicture) {
+                        // Checks if there's an old picture of the user in the uploads directory and deletes it if it exists.
+                        var doneDelete = false
+                        val oldFilePath = File("uploads/$oldImage")
+                        if (oldFilePath.exists()){
+                             doneDelete = oldFilePath.delete()
+                        }
                         return@put call.respondText(
-                            "[SUCCESS] Picture of user $userID successfully modified.",
+                            "[SUCCESS] Picture of user $userID successfully modified. Old picture deleted: $doneDelete",
                             status = HttpStatusCode.OK
                         )
                     } else {

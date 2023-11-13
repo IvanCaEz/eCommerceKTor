@@ -5,9 +5,7 @@ import com.example.model.Order
 import com.example.model.OrderState
 import java.sql.SQLException
 
-class RelationImpl: RelationDao {
-
-    private val connection = Connection.dbConnection()!!
+class RelationImpl(private val connection: java.sql.Connection): RelationDao {
 
     override fun getOrders(userID: Int): List<Order> {
         val sentenceSelect = "SELECT * FROM orders WHERE userID = $userID"

@@ -18,10 +18,9 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
-fun Route.relationRoutes() {
+fun Route.relationRoutes(userDao: UserImpl, relationDao: RelationImpl) {
 
-    val relationDao = RelationImpl()
-    val userDao = UserImpl()
+
     authenticate {
         route("/relations") {
             // Order route

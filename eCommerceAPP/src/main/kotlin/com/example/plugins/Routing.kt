@@ -1,5 +1,8 @@
 package com.example.plugins
 
+import com.example.database.Connection
+import com.example.database.RelationImpl
+import com.example.database.UserImpl
 import com.example.routes.relationRoutes
 import com.example.routes.userRoutes
 import com.example.security.hashing.HashingService
@@ -20,7 +23,11 @@ fun Application.configureRouting(hashingService: HashingService, tokenService: T
             call.respondText("Ktor funcionant!")
         }
 
-        userRoutes(hashingService, tokenService, tokenConfig)
-        relationRoutes()
+        val connection = Connection.dbConnection()!!
+        val userDao = UserImpl(connection)
+        val relationDao = RelationImpl(connection)
+
+        userRoutes(hashingService, tokenService, tokenConfig, userDao)
+        relationRoutes(userDao, relationDao)
     }
 }

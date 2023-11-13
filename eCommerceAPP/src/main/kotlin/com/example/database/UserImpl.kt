@@ -3,9 +3,7 @@ package com.example.database
 import com.example.model.UserInfo
 import java.sql.SQLException
 
-class UserImpl() : UserDao {
-
-    private val connection = Connection.dbConnection()!!
+class UserImpl(private val connection: java.sql.Connection) : UserDao {
 
     override fun getAllUsers(): List<UserInfo>? {
         val sentenceSelect = "SELECT * FROM user_info"
