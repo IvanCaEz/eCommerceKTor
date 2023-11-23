@@ -11,5 +11,6 @@ interface UserDao {
     fun addUser(userInfo: UserInfo): Boolean
     fun deleteUser(id: Int): Boolean
     fun updateUserInfo(userInfo: UserInfo) : Boolean
+    fun updateUserValidation(userEmail: String, validation: Boolean): Boolean
     fun updateUserPicture(pictureName: String, id: Int) : Boolean
 }

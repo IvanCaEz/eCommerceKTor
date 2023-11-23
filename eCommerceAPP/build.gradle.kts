@@ -41,4 +41,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
     // Hex
     implementation("commons-codec:commons-codec:$commons_codec_version")
+
+    // HTML Builder
+    implementation("io.ktor:ktor-server-html-builder")
 }

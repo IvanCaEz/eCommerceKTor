@@ -18,11 +18,57 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.io.File
+import io.ktor.server.html.*
+import kotlinx.html.*
 
 fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService, tokenConfig: TokenConfig, dao: UserImpl) {
 
-
     route("/users") {
+        patch("/validateEmail"){
+            val request = call.receiveNullable<String>() ?: kotlin.run {
+                return@patch call.respond(HttpStatusCode.BadRequest)
+            }
+
+            dao.updateUserValidation(request, true)
+
+            return@patch call.respondHtml(status = HttpStatusCode.OK) {
+
+                head {
+                    title { +"Success Validation" }
+                    style {
+                        unsafe {
+                            raw(
+                                """
+                                body {
+                                    font-family: 'Arial', sans-serif;
+                                    background-color: #f4f4f4;
+                                    text-align: center;
+                                    padding: 20px;
+                                }
+                                h1 {
+                                    color: #007bff;
+                                }
+                                p {
+                                    font-size: 18px;
+                                    color: #333;
+                                }
+                                """
+                            )
+                        }
+                    }
+                }
+                body {
+                    h1 {
+                        +"Thanks for verificate yourself"
+                    }
+                    p {
+                        +"Now you can return to the app, to log in."
+                    }
+                }
+            }
+
+        }
+
         post("/login") {
             val request = call.receiveNullable<AuthRequest>() ?: kotlin.run {
                 call.respond(HttpStatusCode.BadRequest, "The request is null.")
@@ -65,6 +111,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 val newUserInfo = UserInfo(0,
                         "placeholder.png",
                         request.email,
+                        false,
                         saltedHash.hash,
                         saltedHash.salt)
 
@@ -85,7 +132,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 // hay que mandar Authorization header con Bearer token
                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
                   dao.getUserByEmail(mail)?.let { userInfo->
-                       val user = User(userInfo.userID, userInfo.userImage, userInfo.userEmail )
+                       val user = User(userInfo.userID, userInfo.userImage, userInfo.userEmail, userInfo.userValidated )
                        return@get call.respond(HttpStatusCode.OK, user)
                    }
                }
@@ -107,10 +154,8 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
                 val userPhoto = dao.getUserById(userID.toInt())!!.userImage
                 userImage = File("uploads/$userPhoto")
-                println(userPhoto)
-                println(userImage.exists())
+
                 if (userImage.exists()){
-                    println(userPhoto)
                     call.respondFile(userImage)
                 } else {
                     call.respondText("[ERROR] No image found.", status = HttpStatusCode.NotFound)
@@ -164,14 +209,15 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         val updatedUserInfo = UserInfo(user.userID,
                             user.userImage,
                             request.email,
+                            user.userValidated,
                             saltedHash.hash,
                             saltedHash.salt)
-                        println(updatedUserInfo)
                         val updateUser = dao.updateUserInfo(updatedUserInfo)
                         return@put call.respond(HttpStatusCode.OK, updateUser)
                     }
                 }
             }
+
 
             put("/picture") {
                 // Update user picture in db where mail = (mail from token)
