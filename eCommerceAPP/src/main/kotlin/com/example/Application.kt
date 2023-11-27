@@ -26,7 +26,7 @@ fun Application.module() {
     val tokenConfig = TokenConfig(
         issuer = issuer,
         audience = audience,
-        expiresIn = 365L + 1000L * 60L * 60L * 24L,
+        expiresIn = 365L * 1000L * 60L * 60L * 24L,
         secret = secret
     )
     val hashingService = HashingImpl()

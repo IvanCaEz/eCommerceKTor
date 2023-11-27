@@ -24,35 +24,38 @@ import kotlinx.html.*
 fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService, tokenConfig: TokenConfig, dao: UserImpl) {
 
     route("/users") {
-        patch("/validateEmail"){
-            val request = call.receiveNullable<String>() ?: kotlin.run {
-                return@patch call.respond(HttpStatusCode.BadRequest)
-            }
+        patch("/validateEmail/{email}"){
 
-            dao.updateUserValidation(request, true)
+            val userEmail = call.parameters["email"]
+            if (userEmail.isNullOrBlank()) return@patch call.respondText("[ERROR] No valid email has been entered.",
+                    status = HttpStatusCode.BadRequest)
+
+            dao.updateUserValidation(userEmail, true)
+
 
             return@patch call.respondHtml(status = HttpStatusCode.OK) {
+
 
                 head {
                     title { +"Success Validation" }
                     style {
                         unsafe {
                             raw(
-                                """
-                                body {
-                                    font-family: 'Arial', sans-serif;
-                                    background-color: #f4f4f4;
-                                    text-align: center;
-                                    padding: 20px;
-                                }
-                                h1 {
-                                    color: #007bff;
-                                }
-                                p {
-                                    font-size: 18px;
-                                    color: #333;
-                                }
-                                """
+                                    """
+                       body {
+                           font-family: 'Arial', sans-serif;
+                           background-color: #f4f4f4;
+                           text-align: center;
+                           padding: 20px;
+                       }
+                       h1 {
+                           color: #007bff;
+                       }
+                       p {
+                           font-size: 18px;
+                           color: #333;
+                       }
+                       """
                             )
                         }
                     }
@@ -66,8 +69,8 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     }
                 }
             }
-
         }
+
 
         post("/login") {
             val request = call.receiveNullable<AuthRequest>() ?: kotlin.run {
@@ -89,6 +92,10 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
             if (!isValidPass){
                 call.respond(HttpStatusCode.Unauthorized, "Incorrect password")
+                return@post
+            }
+            if (!user.userValidated){
+                call.respond(HttpStatusCode.Unauthorized, "User not validated")
                 return@post
             }
             // Then create a token and return it
