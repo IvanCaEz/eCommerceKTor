@@ -156,7 +156,7 @@ class UserImpl(private val connection: java.sql.Connection) : UserDao {
     }
 
     override fun updateUserValidation(userEmail: String, validation: Boolean): Boolean{
-        val sentencePatch = "UPDATE user_info SET validated = ? WHERE userEmail = ?"
+        val sentencePatch = "UPDATE user_info SET userValidated = ? WHERE userEmail = ?"
         try {
             val preparedUpdate= connection.prepareStatement(sentencePatch)
             preparedUpdate.setBoolean(1, validation)

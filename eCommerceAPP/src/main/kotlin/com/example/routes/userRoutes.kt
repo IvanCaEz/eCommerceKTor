@@ -25,7 +25,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
     route("/users") {
 
-        get("/validateEmail/{email}"){
+        get("/validatePage/{email}"){
             val userEmail = call.parameters["email"]
             if (userEmail.isNullOrBlank()) return@get call.respondText("[ERROR] No valid email has been entered.",
                     status = HttpStatusCode.BadRequest)
@@ -76,7 +76,9 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                                 }
                                 """
                             )
+                            +"sendEmail()"
                         }
+
                     }
                 }
             }
