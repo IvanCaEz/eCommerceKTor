@@ -24,17 +24,13 @@ import kotlinx.html.*
 fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService, tokenConfig: TokenConfig, dao: UserImpl) {
 
     route("/users") {
-        patch("/validateEmail/{email}"){
 
+        get("/validateEmail/{email}"){
             val userEmail = call.parameters["email"]
-            if (userEmail.isNullOrBlank()) return@patch call.respondText("[ERROR] No valid email has been entered.",
+            if (userEmail.isNullOrBlank()) return@get call.respondText("[ERROR] No valid email has been entered.",
                     status = HttpStatusCode.BadRequest)
 
-            dao.updateUserValidation(userEmail, true)
-
-
-            return@patch call.respondHtml(status = HttpStatusCode.OK) {
-
+            return@get call.respondHtml(status = HttpStatusCode.OK) {
 
                 head {
                     title { +"Success Validation" }
@@ -67,8 +63,36 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     p {
                         +"Now you can return to the app, to log in."
                     }
+
+                    script {
+                        unsafe {
+                            raw(
+                                    """
+                                function sendEmail() {
+                                    var url = 'http://95.19.115.169:27031/users/validateEmail/$userEmail';
+                                    fetch(url, {
+                                        method: 'PATCH'
+                                    })
+                                }
+                                """
+                            )
+                        }
+                    }
                 }
             }
+
+
+        }
+
+        // Validates the user in the DB
+        patch("/validateEmail/{email}"){
+            val userEmail = call.parameters["email"]
+            if (userEmail.isNullOrBlank()) return@patch call.respondText("[ERROR] No valid email has been entered.",
+                    status = HttpStatusCode.BadRequest)
+
+            dao.updateUserValidation(userEmail, true)
+
+            return@patch call.respondText("[SUCCESS] User have been validated", status = HttpStatusCode.Accepted)
         }
 
 

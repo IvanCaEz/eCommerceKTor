@@ -82,7 +82,8 @@ class UserImpl(private val connection: java.sql.Connection) : UserDao {
             // Close the sentence
             result.close()
             statement.close()
-            return userInfoByEmail
+            return if (userInfoByEmail.userID == 0) null
+            else userInfoByEmail
 
         }catch (e: SQLException){
             println("[ERROR] Getting data from user with email: $email | Error Code:${e.errorCode}: ${e.message}")
