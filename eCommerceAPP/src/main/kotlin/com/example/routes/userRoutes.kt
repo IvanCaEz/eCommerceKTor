@@ -25,10 +25,12 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
     route("/users") {
 
-        get("/validatePage/{email}"){
+        get("/validatePage/{email}") {
             val userEmail = call.parameters["email"]
-            if (userEmail.isNullOrBlank()) return@get call.respondText("[ERROR] No valid email has been entered.",
-                    status = HttpStatusCode.BadRequest)
+            if (userEmail.isNullOrBlank()) return@get call.respondText(
+                "[ERROR] No valid email has been entered.",
+                status = HttpStatusCode.BadRequest
+            )
 
             return@get call.respondHtml(status = HttpStatusCode.OK) {
 
@@ -37,7 +39,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     style {
                         unsafe {
                             raw(
-                                    """
+                                """
                        body {
                            font-family: 'Arial', sans-serif;
                            background-color: #f4f4f4;
@@ -45,7 +47,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                            padding: 20px;
                        }
                        h1 {
-                           color: #007bff;
+                           color: #ff7900;
                        }
                        p {
                            font-size: 18px;
@@ -67,7 +69,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     script {
                         unsafe {
                             raw(
-                                    """
+                                """
                                 function sendEmail() {
                                     var url = 'http://95.19.115.169:27031/users/validateEmail/$userEmail';
                                     fetch(url, {
@@ -82,21 +84,135 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     }
                 }
             }
-
-
         }
 
         // Validates the user in the DB
-        patch("/validateEmail/{email}"){
+        patch("/validateEmail/{email}") {
             val userEmail = call.parameters["email"]
-            if (userEmail.isNullOrBlank()) return@patch call.respondText("[ERROR] No valid email has been entered.",
-                    status = HttpStatusCode.BadRequest)
+            if (userEmail.isNullOrBlank()) return@patch call.respondText(
+                "[ERROR] No valid email has been entered.",
+                status = HttpStatusCode.BadRequest
+            )
 
             dao.updateUserValidation(userEmail, true)
 
             return@patch call.respondText("[SUCCESS] User have been validated", status = HttpStatusCode.Accepted)
         }
 
+
+        get("/resetPasswordPage/{email}") {
+            val userEmail = call.parameters["email"]
+            if (userEmail.isNullOrBlank()) return@get call.respondText(
+                "[ERROR] No valid email has been entered.",
+                status = HttpStatusCode.BadRequest
+            )
+
+            return@get call.respondHtml(status = HttpStatusCode.OK) {
+
+
+                head {
+                    title("Password Reset")
+                }
+                body {
+                    script {
+                        unsafe {
+                            raw(
+                                """
+                                
+                                document.getElementById("submitButton").addEventListener("click", function(event) {
+                                    event.preventDefault();
+                                    function handleSubmit() {
+                    
+                                    console.log('hola');
+                    
+                                    const passwordField = document.getElementsByName('password')[0];
+                                    const repeatPasswordField = document.getElementsByName('repeat_password')[0];
+                                    const password = passwordField.value;
+                                    const repeatPassword = repeatPasswordField.value;
+                                    console.log(password);
+                    
+                                    if (password !== repeatPassword) {
+                                        // Display an error message or perform some other action
+                                        console.error("Passwords don't match");
+                                        return; // Prevent form submission if passwords don't match
+                                    }
+                    
+                                    const encoder = new TextEncoder();
+                                    const data = encoder.encode(password);
+                    
+                                    crypto.subtle.digest('SHA-256', data).then(encryptedData => {
+                                        const encryptedPassword = Array.from(new Uint8Array(encryptedData)).map(byte => ('00' + byte.toString(16)).slice(-2)).join('');
+                    
+                                        const formData = new FormData();
+                                        formData.append('password', encryptedPassword);
+                    
+                                        const endpoint = '/users/resetPassword/$userEmail';
+                    
+                                        fetch(endpoint, {
+                                            method: 'POST',
+                                            body: formData
+                                        })
+                                        .then(response => {
+                                            // Handle the response from the server
+                                            if (response.ok) {
+                                                // Handle successful response (e.g., show success message)
+                                                console.log('Password reset successful');
+                                            } else {
+                                                // Handle errors from the server
+                                                console.error('Password reset failed');
+                                            }
+                                        })
+                                        .catch(error => {
+                                            // Handle fetch errors (e.g., network issues)
+                                            console.error('Error occurred:', error);
+                                        });
+                                    });
+                                });
+                                });
+                                """
+                            )
+                        }
+                    }
+                    h2 { +"Password Reset" }
+                    form(action = "/users/resetPassword/$userEmail", method = FormMethod.post){
+                        p {
+                            +"Password:"
+                            passwordInput(
+                                name = "password")
+                        }
+                        p {
+                            +"Repeat password:"
+                            passwordInput(name = "repeat_password")
+                        }
+                        p {
+                            button { value = "Reset Password"
+                                id = "submitButton" }
+                        }
+                    }
+                }
+            }
+        }
+
+        post("/resetPassword/{email}") {
+            println("llega al post")
+            val userEmail = call.parameters["email"]
+            val newPass = call.parameters["password"]
+            println("pass received $newPass")
+            if (userEmail.isNullOrBlank()) return@post call.respondText(
+                "[ERROR] No valid email has been entered.",
+                status = HttpStatusCode.BadRequest
+            )
+            if (newPass.isNullOrBlank()) return@post call.respondText(
+                "[ERROR] No valid password has been entered.",
+                status = HttpStatusCode.BadRequest
+            )
+            val saltedHash = hashingService.generateSaltedHash(newPass)
+
+            val passwordChanged = dao.updateUserPassword(userEmail, saltedHash.hash, saltedHash.salt)
+            println("RESULT: $passwordChanged | Pass received: ${saltedHash.hash}")
+            return@post call.respondText("RESULT: $passwordChanged | Pass received: ${saltedHash.hash}")
+
+        }
 
         post("/login") {
             val request = call.receiveNullable<AuthRequest>() ?: kotlin.run {
@@ -107,25 +223,27 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             // Get the user from the BD with the email provided in the request
             val user = dao.getUserByEmail(request.email)
 
-            if (user == null){
+            if (user == null) {
                 call.respond(HttpStatusCode.NotFound, "Email not found.")
                 return@post
             }
             // Verify the pass received with the pass and salt stored in the BD
             val isValidPass = hashingService.verify(
                 request.password,
-                SaltedHash(user.userPass,user.userSalt))
+                SaltedHash(user.userPass, user.userSalt)
+            )
 
-            if (!isValidPass){
+            if (!isValidPass) {
                 call.respond(HttpStatusCode.Unauthorized, "Incorrect password")
                 return@post
             }
-            if (!user.userValidated){
+            if (!user.userValidated) {
                 call.respond(HttpStatusCode.Unauthorized, "User not validated")
                 return@post
             }
             // Then create a token and return it
-            val token = tokenService.generate(tokenConfig,
+            val token = tokenService.generate(
+                tokenConfig,
                 TokenClaim("userEmail", user.userEmail)
             )
             call.respond(HttpStatusCode.OK, AuthResponse(token))
@@ -138,37 +256,48 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 return@post
             }
             val userExists = dao.getUserByEmail(request.email)
-            if (userExists == null){
+            if (userExists == null) {
                 // Encrypts the password provided and creates a new user to store in the DB
                 val saltedHash = hashingService.generateSaltedHash(request.password)
-                val newUserInfo = UserInfo(0,
-                        "placeholder.png",
-                        request.email,
-                        false,
-                        saltedHash.hash,
-                        saltedHash.salt)
+                val newUserInfo = UserInfo(
+                    0,
+                    "placeholder.png",
+                    request.email,
+                    false,
+                    saltedHash.hash,
+                    saltedHash.salt
+                )
 
                 val addedNewUser = dao.addUser(newUserInfo)
 
                 if (addedNewUser) {
-                    return@post call.respondText("[SUCCESS] New user created successfully.", status = HttpStatusCode.Created)
+                    return@post call.respondText(
+                        "[SUCCESS] New user created successfully.",
+                        status = HttpStatusCode.Created
+                    )
                 } else {
-                    return@post call.respondText("[ERROR] The new user could not be added.", status = HttpStatusCode.BadRequest)
+                    return@post call.respondText(
+                        "[ERROR] The new user could not be added.",
+                        status = HttpStatusCode.BadRequest
+                    )
                 }
             } else {
-                return@post call.respondText("[ERROR] There's an existing user with this email associated to.", status = HttpStatusCode.NotAcceptable)
+                return@post call.respondText(
+                    "[ERROR] There's an existing user with this email associated to.",
+                    status = HttpStatusCode.NotAcceptable
+                )
             }
         }
 
         authenticate {
             get("loggedUser") {
                 // hay que mandar Authorization header con Bearer token
-               call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
-                  dao.getUserByEmail(mail)?.let { userInfo->
-                       val user = User(userInfo.userID, userInfo.userImage, userInfo.userEmail, userInfo.userValidated )
-                       return@get call.respond(HttpStatusCode.OK, user)
-                   }
-               }
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
+                    dao.getUserByEmail(mail)?.let { userInfo ->
+                        val user = User(userInfo.userID, userInfo.userImage, userInfo.userEmail, userInfo.userValidated)
+                        return@get call.respond(HttpStatusCode.OK, user)
+                    }
+                }
                 return@get call.respond(HttpStatusCode.NotFound)
             }
             get {
@@ -179,16 +308,18 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 } ?: call.respondText("[ERROR] There are no users in the database.", status = HttpStatusCode.NotFound)
             }
 
-            get("{id}/picture"){
+            get("{id}/picture") {
                 var userImage: File = File("")
                 val userID = call.parameters["id"]
-                if (userID.isNullOrBlank()) return@get call.respondText("[ERROR] No valid ID has been entered.",
-                    status = HttpStatusCode.BadRequest)
+                if (userID.isNullOrBlank()) return@get call.respondText(
+                    "[ERROR] No valid ID has been entered.",
+                    status = HttpStatusCode.BadRequest
+                )
 
                 val userPhoto = dao.getUserById(userID.toInt())!!.userImage
                 userImage = File("uploads/$userPhoto")
 
-                if (userImage.exists()){
+                if (userImage.exists()) {
                     call.respondFile(userImage)
                 } else {
                     call.respondText("[ERROR] No image found.", status = HttpStatusCode.NotFound)
@@ -201,15 +332,16 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         "[ERROR] No valid ID has been entered.",
                         status = HttpStatusCode.BadRequest
                     )
-                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
-                    dao.getUserByEmail(mail)?.let { userInfo->
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
+                    dao.getUserByEmail(mail)?.let { userInfo ->
 
                         val id = call.parameters["id"]!!.toInt()
 
                         if (userInfo.userID != id) {
                             return@delete call.respondText(
                                 "[ERROR] You can't delete other users.",
-                                status = HttpStatusCode.Unauthorized)
+                                status = HttpStatusCode.Unauthorized
+                            )
                         }
 
                         val deleteUser = dao.deleteUser(id)
@@ -236,15 +368,17 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 val request = call.receiveNullable<AuthRequest>() ?: kotlin.run {
                     return@put call.respond(HttpStatusCode.BadRequest)
                 }
-                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
-                    dao.getUserByEmail(mail)?.let { user->
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
+                    dao.getUserByEmail(mail)?.let { user ->
                         val saltedHash = hashingService.generateSaltedHash(request.password)
-                        val updatedUserInfo = UserInfo(user.userID,
+                        val updatedUserInfo = UserInfo(
+                            user.userID,
                             user.userImage,
                             request.email,
                             user.userValidated,
                             saltedHash.hash,
-                            saltedHash.salt)
+                            saltedHash.salt
+                        )
                         val updateUser = dao.updateUserInfo(updatedUserInfo)
                         return@put call.respond(HttpStatusCode.OK, updateUser)
                     }
@@ -254,7 +388,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
             put("/picture") {
                 // Update user picture in db where mail = (mail from token)
-                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let {mail->
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
                     val user = dao.getUserByEmail(mail)!!
                     val oldImage = user.userImage
                     val userID = user.userID
@@ -266,7 +400,8 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                             is PartData.FormItem -> Unit
                             is PartData.FileItem -> {
 
-                                userImage = part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
+                                userImage =
+                                    part.originalFileName as String // A user.image le asignamos en formato string la ruta donde se guardará la imagen
 
                                 val fileBytes =
                                     part.streamProvider().readBytes() //LEEMOS LA IMAGEN QUE HA PASADO POR EL POST
@@ -274,7 +409,9 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                                 //EN BASES DE DATOS SOLO GUARDAR URL del archivo
                             }
 
-                            else -> {Unit}
+                            else -> {
+                                Unit
+                            }
                         }
                     }
 
@@ -284,8 +421,8 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         // Checks if there's an old picture of the user in the uploads directory and deletes it if it exists.
                         var doneDelete = false
                         val oldFilePath = File("uploads/$oldImage")
-                        if (oldFilePath.exists()){
-                             doneDelete = oldFilePath.delete()
+                        if (oldFilePath.exists()) {
+                            doneDelete = oldFilePath.delete()
                         }
                         return@put call.respondText(
                             "[SUCCESS] Picture of user $userID successfully modified. Old picture deleted: $doneDelete",
@@ -303,3 +440,4 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
     }
 }
+

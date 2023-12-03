@@ -155,6 +155,28 @@ class UserImpl(private val connection: java.sql.Connection) : UserDao {
         }
     }
 
+    override fun updateUserPassword(userEmail: String, password: String, salt: String): Boolean {
+        val sentenceUpdate = "UPDATE user_info SET " +
+                "userPass = ?, userSalt = ?" +
+                " WHERE userEmail = ?"
+
+        try {
+            val preparedUpdate = connection.prepareStatement(sentenceUpdate)
+
+            preparedUpdate.setString(1, password)
+            preparedUpdate.setString(2, salt)
+            preparedUpdate.setString(3, userEmail)
+            // Execute the update
+            preparedUpdate.executeUpdate()
+            // Close the sentence
+            preparedUpdate.close()
+            return true
+        } catch (e: SQLException) {
+            println("[ERROR] Failed changing password. | Error Code:${e.errorCode}: ${e.message}")
+            return false
+        }
+    }
+
     override fun updateUserValidation(userEmail: String, validation: Boolean): Boolean{
         val sentencePatch = "UPDATE user_info SET userValidated = ? WHERE userEmail = ?"
         try {
