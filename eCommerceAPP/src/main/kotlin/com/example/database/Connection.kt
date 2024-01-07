@@ -10,7 +10,7 @@ object Connection {
 
             val username = "root"
             val password = "tO8ps5KZUS"
-            val jdbcUrl = "jdbc:postgresql://95.19.115.169:5432/ecommerceapp"
+            val jdbcUrl = "jdbc:postgresql://89.47.29.153:5432/ecommerceapp"
             //Ivan localhost:5433 / Margaux localhost:5432
             /*val jdbcUrl = "jdbc:postgresql://localhost:5432/ecommerceapp"
             val username = "postgres"
