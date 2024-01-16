@@ -33,7 +33,11 @@ class UserImpl(private val connection: java.sql.Connection) : UserDao {
             return userInfos.ifEmpty { null }
     }
 
-
+    /**
+     * This function returns a UserInfo object with the data of the user searched by ID
+     * @param id: Int
+     * @return UserInfo?
+     */
     override fun getUserById(id: Int): UserInfo? {
         val sentenceSelect = "SELECT * FROM user_info WHERE userID = $id"
         var userInfoByID = UserInfo(0,"","",false, "","")
