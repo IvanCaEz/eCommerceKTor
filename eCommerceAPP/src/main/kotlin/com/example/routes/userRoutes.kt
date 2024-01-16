@@ -9,6 +9,7 @@ import com.example.security.hashing.SaltedHash
 import com.example.security.token.TokenClaim
 import com.example.security.token.TokenConfig
 import com.example.security.token.TokenService
+import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
@@ -117,7 +118,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     style {
                         unsafe {
                             raw(
-                                    """
+                                """
                        body {
                            font-family: 'Arial', sans-serif;
                            background-color: #f4f4f4;
@@ -151,63 +152,72 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                             raw(
                                 """
                                 
-                                document.getElementById("submitButton").addEventListener("click", function(event) {
-                                    event.preventDefault();
-                                    function handleSubmit() {
-                     
-                                    const passwordField = document.getElementsByName('password')[0];
-                                    const repeatPasswordField = document.getElementsByName('repeat_password')[0];
-                                    const password = passwordField.value;
-                                    const repeatPassword = repeatPasswordField.value;
-                                    
-                                    if (password !== repeatPassword) {
-                                        // Display an error message or perform some other action
-                                        console.error("Passwords don't match");
-                                        return; // Prevent form submission if passwords don't match
-                                    }
-                    
-                                    const encoder = new TextEncoder();
-                                    const data = encoder.encode(password);
-                    
-                                    crypto.subtle.digest('SHA-256', data).then(encryptedData => {
-                                        const encryptedPassword = Array.from(new Uint8Array(encryptedData)).map(byte => ('00' + byte.toString(16)).slice(-2)).join('');
-                    
-                                        const formData = new FormData();
-                                        formData.append('password', encryptedPassword);
-                    
-                                        const endpoint = '/users/resetPassword/$userEmail';
-                    
-                                        fetch(endpoint, {
-                                            method: 'POST',
-                                            body: formData
-                                        })
-                                        .then(response => {
-                                            // Handle the response from the server
-                                            if (response.ok) {
-                                                // Handle successful response (e.g., show success message)
-                                                console.log('Password reset successful');
-                                            } else {
-                                                // Handle errors from the server
-                                                console.error('Password reset failed');
+                                function a() {
+                                    console.log("AAAAAAAAAAAAAAAAAAA");
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        document.getElementById("submitButton").addEventListener("click", function(event) {
+                                            event.preventDefault();
+                                            function handleSubmit() {
+                             
+                                            const passwordField = document.getElementsByName('password')[0];
+                                            const repeatPasswordField = document.getElementsByName('repeat_password')[0];
+                                            const password = passwordField.value;
+                                            const repeatPassword = repeatPasswordField.value;
+                                            
+                                            if (password !== repeatPassword) {
+                                                // Display an error message or perform some other action
+                                                console.error("Passwords don't match");
+                                                return; // Prevent form submission if passwords don't match
                                             }
-                                        })
-                                        .catch(error => {
-                                            // Handle fetch errors (e.g., network issues)
-                                            console.error('Error occurred:', error);
+                            
+                                            const encoder = new TextEncoder();
+                                            const data = encoder.encode(password);
+                            
+                                            crypto.subtle.digest('SHA-256', data).then(encryptedData => {
+                                                const encryptedPassword = Array.from(new Uint8Array(encryptedData)).map(byte => ('00' + byte.toString(16)).slice(-2)).join('');
+                            
+                                                const formData = new FormData();
+                                                formData.append('password', encryptedPassword);
+                            
+                                                const url = '/users/resetPassword/$userEmail';
+                            
+                                                fetch(url, {
+                                                    method: 'POST',
+                                                    body: formData,
+                                                })
+                                                .then(response => {
+                                                    // Handle the response from the server
+                                                    if (response.ok) {
+                                                        // Handle successful response (e.g., show success message)
+                                                        console.log('Password reset successful')
+                                                        console.log(encryptedPassword);
+                                                        //window.location.href = '/users/resetPassword/$userEmail';
+                                                        ;
+                                                    } else {
+                                                        // Handle errors from the server
+                                                        console.error('Password reset failed');
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    // Handle fetch errors (e.g., network issues)
+                                                    console.error('Error occurred:', error);
+                                                });
+                                            });
+                                        };
+                                       handleSubmit();
                                         });
                                     });
-                                });
-                                });
+                                   }
                                 """
+                                +"a()"
                             )
                         }
                     }
                     h2 { +"Password Reset" }
-                    form(action = "/users/resetPassword/$userEmail", method = FormMethod.post){
+                    form(action = "/users/resetPassword/$userEmail", method = FormMethod.post) {
                         p {
                             +"Password: "
-                            passwordInput(
-                                name = "password")
+                            passwordInput(name = "password")
                         }
                         p {
                             +"Repeat password: "
@@ -227,6 +237,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         post("/resetPassword/{email}") {
             val userEmail = call.parameters["email"]
             val newPass = call.receiveNullable<String>()
+            println(newPass)
             if (userEmail.isNullOrBlank()) return@post call.respondText(
                 "[ERROR] No valid email has been entered.",
                 status = HttpStatusCode.BadRequest
@@ -235,6 +246,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 "[ERROR] No valid password has been entered.",
                 status = HttpStatusCode.BadRequest
             )
+            println("Pass before hashing: $newPass")
             val saltedHash = hashingService.generateSaltedHash(newPass)
             val passwordChanged = dao.updateUserPassword(userEmail, saltedHash.hash, saltedHash.salt)
             println("RESULT: $passwordChanged | Pass received: ${saltedHash.hash}")
@@ -245,7 +257,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     style {
                         unsafe {
                             raw(
-                                    """
+                                """
                        body {
                            font-family: 'Arial', sans-serif;
                            background-color: #f4f4f4;
@@ -273,8 +285,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     }
                 }
             }
-        }
-
         }
 
         post("/login") {
@@ -422,8 +432,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         }
                     }
                 }
-
-
             }
 
             put("/edit") {
@@ -447,7 +455,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     }
                 }
             }
-
 
             put("/picture") {
                 // Update user picture in db where mail = (mail from token)
@@ -498,9 +505,9 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         )
                     }
                 }
-
             }
         }
     }
+}
 
 
