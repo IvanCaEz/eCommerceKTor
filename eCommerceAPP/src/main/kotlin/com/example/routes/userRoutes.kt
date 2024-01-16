@@ -114,6 +114,38 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     title("Password Reset")
                 }
                 body {
+                    style {
+                        unsafe {
+                            raw(
+                                    """
+                       body {
+                           font-family: 'Arial', sans-serif;
+                           background-color: #f4f4f4;
+                           text-align: center;
+                           padding: 20px;
+                       }
+                       h2 {
+                           color: #ff7900;
+                       }
+                       p {
+                           font-size: 18px;
+                           color: #333;
+                       }
+                       button {
+                           font-family: 'Arial', sans-serif;
+                           background-color: #FF7900;
+                           text-align: center;
+                           padding: 16px;
+                           font-size: 16px;
+                           font-weight: bold;
+                           color: white;
+                           border-radius: 5px;
+                           border-color: black;
+                       }
+                       """
+                            )
+                        }
+                    }
                     script {
                         unsafe {
                             raw(
@@ -122,15 +154,12 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                                 document.getElementById("submitButton").addEventListener("click", function(event) {
                                     event.preventDefault();
                                     function handleSubmit() {
-                    
-                                    console.log('hola');
-                    
+                     
                                     const passwordField = document.getElementsByName('password')[0];
                                     const repeatPasswordField = document.getElementsByName('repeat_password')[0];
                                     const password = passwordField.value;
                                     const repeatPassword = repeatPasswordField.value;
-                                    console.log(password);
-                    
+                                    
                                     if (password !== repeatPassword) {
                                         // Display an error message or perform some other action
                                         console.error("Passwords don't match");
@@ -176,17 +205,19 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     h2 { +"Password Reset" }
                     form(action = "/users/resetPassword/$userEmail", method = FormMethod.post){
                         p {
-                            +"Password:"
+                            +"Password: "
                             passwordInput(
                                 name = "password")
                         }
                         p {
-                            +"Repeat password:"
+                            +"Repeat password: "
                             passwordInput(name = "repeat_password")
                         }
                         p {
-                            button { value = "Reset Password"
-                                id = "submitButton" }
+                            button {
+                                id = "submitButton"
+                                +"Change password"
+                            }
                         }
                     }
                 }
@@ -194,10 +225,8 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
 
         post("/resetPassword/{email}") {
-            println("llega al post")
             val userEmail = call.parameters["email"]
-            val newPass = call.parameters["password"]
-            println("pass received $newPass")
+            val newPass = call.receiveNullable<String>()
             if (userEmail.isNullOrBlank()) return@post call.respondText(
                 "[ERROR] No valid email has been entered.",
                 status = HttpStatusCode.BadRequest
@@ -207,10 +236,44 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 status = HttpStatusCode.BadRequest
             )
             val saltedHash = hashingService.generateSaltedHash(newPass)
-
             val passwordChanged = dao.updateUserPassword(userEmail, saltedHash.hash, saltedHash.salt)
             println("RESULT: $passwordChanged | Pass received: ${saltedHash.hash}")
-            return@post call.respondText("RESULT: $passwordChanged | Pass received: ${saltedHash.hash}")
+            return@post call.respondHtml(status = HttpStatusCode.OK) {
+
+                head {
+                    title { +"Password change success" }
+                    style {
+                        unsafe {
+                            raw(
+                                    """
+                       body {
+                           font-family: 'Arial', sans-serif;
+                           background-color: #f4f4f4;
+                           text-align: center;
+                           padding: 20px;
+                       }
+                       h1 {
+                           color: #ff7900;
+                       }
+                       p {
+                           font-size: 18px;
+                           color: #333;
+                       }
+                       """
+                            )
+                        }
+                    }
+                }
+                body {
+                    h1 {
+                        +"Your password has been successfully changed"
+                    }
+                    p {
+                        +"Now you can return to the app, to log in."
+                    }
+                }
+            }
+        }
 
         }
 
@@ -439,5 +502,5 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             }
         }
     }
-}
+
 
