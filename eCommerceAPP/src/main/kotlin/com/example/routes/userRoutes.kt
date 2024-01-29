@@ -152,8 +152,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                             raw(
                                 """
                                 
-                                function a() {
-                                    console.log("AAAAAAAAAAAAAAAAAAA");
+                                function encryptAndSendPass() {
                                     document.addEventListener('DOMContentLoaded', function() {
                                         document.getElementById("submitButton").addEventListener("click", function(event) {
                                             event.preventDefault();
@@ -209,7 +208,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                                     });
                                    }
                                 """
-                                +"a()"
+                                +"encryptAndSendPass()"
                             )
                         }
                     }
@@ -236,8 +235,8 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
         post("/resetPassword/{email}") {
             val userEmail = call.parameters["email"]
-            val newPass = call.receiveNullable<String>()
-            println(newPass)
+            val params = call.receiveParameters()
+            val newPass = params["password"].toString()
             if (userEmail.isNullOrBlank()) return@post call.respondText(
                 "[ERROR] No valid email has been entered.",
                 status = HttpStatusCode.BadRequest
@@ -246,10 +245,9 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 "[ERROR] No valid password has been entered.",
                 status = HttpStatusCode.BadRequest
             )
-            println("Pass before hashing: $newPass")
             val saltedHash = hashingService.generateSaltedHash(newPass)
-            val passwordChanged = dao.updateUserPassword(userEmail, saltedHash.hash, saltedHash.salt)
-            println("RESULT: $passwordChanged | Pass received: ${saltedHash.hash}")
+            dao.updateUserPassword(userEmail, saltedHash.hash, saltedHash.salt)
+
             return@post call.respondHtml(status = HttpStatusCode.OK) {
 
                 head {
@@ -303,7 +301,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             // Verify the pass received with the pass and salt stored in the BD
             val isValidPass = hashingService.verify(
                 request.password,
-                SaltedHash(user.userPass, user.userSalt)
+                    SaltedHash(user.userPass, user.userSalt)
             )
 
             if (!isValidPass) {
