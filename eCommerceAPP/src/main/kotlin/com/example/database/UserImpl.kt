@@ -184,7 +184,7 @@ class UserImpl(private val connection: java.sql.Connection) : UserDao {
     override fun updateUserValidation(userEmail: String, validation: Boolean): Boolean{
         val sentencePatch = "UPDATE user_info SET userValidated = ? WHERE userEmail = ?"
         try {
-            val preparedUpdate= connection.prepareStatement(sentencePatch)
+            val preparedUpdate = connection.prepareStatement(sentencePatch)
             preparedUpdate.setBoolean(1, validation)
             preparedUpdate.setString(2, userEmail)
             preparedUpdate.executeUpdate()
@@ -194,7 +194,20 @@ class UserImpl(private val connection: java.sql.Connection) : UserDao {
             println("[ERROR] Failed updating UserInfo | Error Code:${e.errorCode}: ${e.message}")
             return false
         }
-
+    }
+    override fun updateUserEmail(oldEmail: String, newEmail: String): Boolean{
+        val sentencePatch = "UPDATE user_info SET userEmail = ? WHERE userEmail = ?"
+        try {
+            val preparedUpdate= connection.prepareStatement(sentencePatch)
+            preparedUpdate.setString(1, newEmail)
+            preparedUpdate.setString(2, oldEmail)
+            preparedUpdate.executeUpdate()
+            preparedUpdate.close()
+            return true
+        } catch (e: SQLException){
+            println("[ERROR] Failed updating UserInfo | Error Code:${e.errorCode}: ${e.message}")
+            return false
+        }
     }
 
     override fun updateUserPicture(pictureName: String, id: Int): Boolean {

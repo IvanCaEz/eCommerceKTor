@@ -9,6 +9,7 @@ import com.example.security.hashing.SaltedHash
 import com.example.security.token.TokenClaim
 import com.example.security.token.TokenConfig
 import com.example.security.token.TokenService
+import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import io.ktor.http.content.*
 import io.ktor.server.application.*
@@ -100,6 +101,21 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
 
 
+
+        patch("/changeEmail/{email}") {
+            val newEmail = call.parameters["email"]
+            val oldEmail = call.receiveText()
+            if (newEmail.isNullOrBlank()) return@patch call.respondText(
+                    "[ERROR] No valid email has been entered.",
+                    status = HttpStatusCode.BadRequest
+            )
+
+            dao.updateUserEmail(oldEmail, newEmail)
+
+            return@patch call.respondText("[SUCCESS] User have been validated", status = HttpStatusCode.Accepted)
+        }
+
+
         get("/resetPasswordPage/{email}") {
             val userEmail = call.parameters["email"]
             if (userEmail.isNullOrBlank()) return@get call.respondText(
@@ -114,79 +130,118 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     title("Password Reset")
                 }
                 body {
+                    style {
+                        unsafe {
+                            raw(
+                                """
+                       body {
+                           font-family: 'Arial', sans-serif;
+                           background-color: #f4f4f4;
+                           text-align: center;
+                           padding: 20px;
+                       }
+                       h2 {
+                           color: #ff7900;
+                       }
+                       p {
+                           font-size: 18px;
+                           color: #333;
+                       }
+                       button {
+                           font-family: 'Arial', sans-serif;
+                           background-color: #FF7900;
+                           text-align: center;
+                           padding: 16px;
+                           font-size: 16px;
+                           font-weight: bold;
+                           color: white;
+                           border-radius: 5px;
+                           border-color: black;
+                       }
+                       """
+                            )
+                        }
+                    }
                     script {
                         unsafe {
                             raw(
                                 """
                                 
-                                document.getElementById("submitButton").addEventListener("click", function(event) {
-                                    event.preventDefault();
-                                    function handleSubmit() {
-                    
-                                    console.log('hola');
-                    
-                                    const passwordField = document.getElementsByName('password')[0];
-                                    const repeatPasswordField = document.getElementsByName('repeat_password')[0];
-                                    const password = passwordField.value;
-                                    const repeatPassword = repeatPasswordField.value;
-                                    console.log(password);
-                    
-                                    if (password !== repeatPassword) {
-                                        // Display an error message or perform some other action
-                                        console.error("Passwords don't match");
-                                        return; // Prevent form submission if passwords don't match
-                                    }
-                    
-                                    const encoder = new TextEncoder();
-                                    const data = encoder.encode(password);
-                    
-                                    crypto.subtle.digest('SHA-256', data).then(encryptedData => {
-                                        const encryptedPassword = Array.from(new Uint8Array(encryptedData)).map(byte => ('00' + byte.toString(16)).slice(-2)).join('');
-                    
-                                        const formData = new FormData();
-                                        formData.append('password', encryptedPassword);
-                    
-                                        const endpoint = '/users/resetPassword/$userEmail';
-                    
-                                        fetch(endpoint, {
-                                            method: 'POST',
-                                            body: formData
-                                        })
-                                        .then(response => {
-                                            // Handle the response from the server
-                                            if (response.ok) {
-                                                // Handle successful response (e.g., show success message)
-                                                console.log('Password reset successful');
-                                            } else {
-                                                // Handle errors from the server
-                                                console.error('Password reset failed');
+                                function encryptAndSendPass() {
+                                    document.addEventListener('DOMContentLoaded', function() {
+                                        document.getElementById("submitButton").addEventListener("click", function(event) {
+                                            event.preventDefault();
+                                            function handleSubmit() {
+                             
+                                            const passwordField = document.getElementsByName('password')[0];
+                                            const repeatPasswordField = document.getElementsByName('repeat_password')[0];
+                                            const password = passwordField.value;
+                                            const repeatPassword = repeatPasswordField.value;
+                                            
+                                            if (password !== repeatPassword) {
+                                                // Display an error message or perform some other action
+                                                console.error("Passwords don't match");
+                                                return; // Prevent form submission if passwords don't match
                                             }
-                                        })
-                                        .catch(error => {
-                                            // Handle fetch errors (e.g., network issues)
-                                            console.error('Error occurred:', error);
+                            
+                                            const encoder = new TextEncoder();
+                                            const data = encoder.encode(password);
+                            
+                                            crypto.subtle.digest('SHA-256', data).then(encryptedData => {
+                                                const encryptedPassword = Array.from(new Uint8Array(encryptedData)).map(byte => ('00' + byte.toString(16)).slice(-2)).join('');
+                            
+                                                const formData = new FormData();
+                                                formData.append('password', encryptedPassword);
+                            
+                                                const url = '/users/resetPassword/$userEmail';
+                            
+                                                fetch(url, {
+                                                    method: 'POST',
+                                                    body: formData,
+                                                })
+                                                .then(response => {
+                                                    // Handle the response from the server
+                                                    if (response.ok) {
+                                                        // Handle successful response (e.g., show success message)
+                                                        console.log('Password reset successful')
+                                                        console.log(encryptedPassword);
+                                                        //window.location.href = '/users/resetPassword/$userEmail';
+                                                        ;
+                                                    } else {
+                                                        // Handle errors from the server
+                                                        console.error('Password reset failed');
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    // Handle fetch errors (e.g., network issues)
+                                                    console.error('Error occurred:', error);
+                                                });
+                                            });
+                                        };
+                                       handleSubmit();
                                         });
                                     });
-                                });
-                                });
+                                   }
                                 """
+                                +"encryptAndSendPass()"
                             )
                         }
                     }
                     h2 { +"Password Reset" }
-                    form(action = "/users/resetPassword/$userEmail", method = FormMethod.post){
+                    form(action = "/users/resetPassword/$userEmail", method = FormMethod.post) {
                         p {
-                            +"Password:"
-                            passwordInput(
-                                name = "password")
+                            +"Password: "
+                            passwordInput(name = "password")
                         }
                         p {
-                            +"Repeat password:"
+                            +"Repeat password: "
                             passwordInput(name = "repeat_password")
                         }
                         p {
-                            button { value = "Reset Password"
-                                id = "submitButton" }
+                            button {
+                                id = "submitButton"
+                                +"Change password"
+                            }
                         }
                     }
                 }
@@ -194,10 +249,9 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
 
         post("/resetPassword/{email}") {
-            println("llega al post")
             val userEmail = call.parameters["email"]
-            val newPass = call.parameters["password"]
-            println("pass received $newPass")
+            val params = call.receiveParameters()
+            val newPass = params["password"].toString()
             if (userEmail.isNullOrBlank()) return@post call.respondText(
                 "[ERROR] No valid email has been entered.",
                 status = HttpStatusCode.BadRequest
@@ -207,11 +261,43 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 status = HttpStatusCode.BadRequest
             )
             val saltedHash = hashingService.generateSaltedHash(newPass)
+            dao.updateUserPassword(userEmail, saltedHash.hash, saltedHash.salt)
 
-            val passwordChanged = dao.updateUserPassword(userEmail, saltedHash.hash, saltedHash.salt)
-            println("RESULT: $passwordChanged | Pass received: ${saltedHash.hash}")
-            return@post call.respondText("RESULT: $passwordChanged | Pass received: ${saltedHash.hash}")
+            return@post call.respondHtml(status = HttpStatusCode.OK) {
 
+                head {
+                    title { +"Password change success" }
+                    style {
+                        unsafe {
+                            raw(
+                                """
+                       body {
+                           font-family: 'Arial', sans-serif;
+                           background-color: #f4f4f4;
+                           text-align: center;
+                           padding: 20px;
+                       }
+                       h1 {
+                           color: #ff7900;
+                       }
+                       p {
+                           font-size: 18px;
+                           color: #333;
+                       }
+                       """
+                            )
+                        }
+                    }
+                }
+                body {
+                    h1 {
+                        +"Your password has been successfully changed"
+                    }
+                    p {
+                        +"Now you can return to the app, to log in."
+                    }
+                }
+            }
         }
 
         post("/login") {
@@ -230,7 +316,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             // Verify the pass received with the pass and salt stored in the BD
             val isValidPass = hashingService.verify(
                 request.password,
-                SaltedHash(user.userPass, user.userSalt)
+                    SaltedHash(user.userPass, user.userSalt)
             )
 
             if (!isValidPass) {
@@ -290,6 +376,68 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
 
         authenticate {
+            post("changeEmail") {
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
+                    dao.getUserByEmail(mail)?.let {
+                        val newEmail = call.receiveText()
+                        return@post call.respondHtml(status = HttpStatusCode.OK) {
+
+                            head {
+                                title { +"Success Validation" }
+                                style {
+                                    unsafe {
+                                        raw(
+                                                """
+                       body {
+                           font-family: 'Arial', sans-serif;
+                           background-color: #f4f4f4;
+                           text-align: center;
+                           padding: 20px;
+                       }
+                       h1 {
+                           color: #ff7900;
+                       }
+                       p {
+                           font-size: 18px;
+                           color: #333;
+                       }
+                       """
+                                        )
+                                    }
+                                }
+                            }
+                            body {
+                                h1 {
+                                    +"Thanks for verificate your new email, your email $mail has been changed to $newEmail"
+                                }
+                                p {
+                                    +"Now you can return to the app, to log in."
+                                }
+
+                                script {
+                                    unsafe {
+                                        raw(
+                                                """
+                                function sendEmail() {
+                                    var url = 'http://89.47.29.153:27031/users/changeEmail/$newEmail';
+                                    fetch(url, {
+                                        method: 'PATCH',
+                                        body: $mail
+                                    })
+                                }
+                                """
+                                        )
+                                        +"sendEmail()"
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+                    return@post call.respond(HttpStatusCode.NotFound)
+                }
+            }
+
             get("loggedUser") {
                 // hay que mandar Authorization header con Bearer token
                 call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
@@ -359,8 +507,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         }
                     }
                 }
-
-
             }
 
             put("/edit") {
@@ -384,7 +530,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     }
                 }
             }
-
 
             put("/picture") {
                 // Update user picture in db where mail = (mail from token)
@@ -435,9 +580,9 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                         )
                     }
                 }
-
             }
         }
     }
 }
+
 
