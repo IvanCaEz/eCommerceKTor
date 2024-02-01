@@ -101,6 +101,21 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
 
 
+
+        patch("/changeEmail/{email}") {
+            val newEmail = call.parameters["email"]
+            val oldEmail = call.receiveText()
+            if (newEmail.isNullOrBlank()) return@patch call.respondText(
+                    "[ERROR] No valid email has been entered.",
+                    status = HttpStatusCode.BadRequest
+            )
+
+            dao.updateUserEmail(oldEmail, newEmail)
+
+            return@patch call.respondText("[SUCCESS] User have been validated", status = HttpStatusCode.Accepted)
+        }
+
+
         get("/resetPasswordPage/{email}") {
             val userEmail = call.parameters["email"]
             if (userEmail.isNullOrBlank()) return@get call.respondText(
@@ -361,6 +376,68 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
         }
 
         authenticate {
+            post("changeEmail") {
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
+                    dao.getUserByEmail(mail)?.let {
+                        val newEmail = call.receiveText()
+                        return@post call.respondHtml(status = HttpStatusCode.OK) {
+
+                            head {
+                                title { +"Success Validation" }
+                                style {
+                                    unsafe {
+                                        raw(
+                                                """
+                       body {
+                           font-family: 'Arial', sans-serif;
+                           background-color: #f4f4f4;
+                           text-align: center;
+                           padding: 20px;
+                       }
+                       h1 {
+                           color: #ff7900;
+                       }
+                       p {
+                           font-size: 18px;
+                           color: #333;
+                       }
+                       """
+                                        )
+                                    }
+                                }
+                            }
+                            body {
+                                h1 {
+                                    +"Thanks for verificate your new email, your email $mail has been changed to $newEmail"
+                                }
+                                p {
+                                    +"Now you can return to the app, to log in."
+                                }
+
+                                script {
+                                    unsafe {
+                                        raw(
+                                                """
+                                function sendEmail() {
+                                    var url = 'http://89.47.29.153:27031/users/changeEmail/$newEmail';
+                                    fetch(url, {
+                                        method: 'PATCH',
+                                        body: $mail
+                                    })
+                                }
+                                """
+                                        )
+                                        +"sendEmail()"
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+                    return@post call.respond(HttpStatusCode.NotFound)
+                }
+            }
+
             get("loggedUser") {
                 // hay que mandar Authorization header con Bearer token
                 call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
