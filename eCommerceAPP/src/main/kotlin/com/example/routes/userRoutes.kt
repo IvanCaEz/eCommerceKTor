@@ -9,6 +9,7 @@ import com.example.security.hashing.SaltedHash
 import com.example.security.token.TokenClaim
 import com.example.security.token.TokenConfig
 import com.example.security.token.TokenService
+import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import io.ktor.http.content.*
@@ -87,7 +88,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             }
         }
 
-        // Validates the user in the DB
         patch("/validateEmail/{email}") {
             val userEmail = call.parameters["email"]
             if (userEmail.isNullOrBlank()) return@patch call.respondText(
@@ -99,22 +99,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
 
             return@patch call.respondText("[SUCCESS] User have been validated", status = HttpStatusCode.Accepted)
         }
-
-
-
-        patch("/changeEmail/{email}") {
-            val newEmail = call.parameters["email"]
-            val oldEmail = call.receiveText()
-            if (newEmail.isNullOrBlank()) return@patch call.respondText(
-                    "[ERROR] No valid email has been entered.",
-                    status = HttpStatusCode.BadRequest
-            )
-
-            dao.updateUserEmail(oldEmail, newEmail)
-
-            return@patch call.respondText("[SUCCESS] User have been validated", status = HttpStatusCode.Accepted)
-        }
-
 
         get("/resetPasswordPage/{email}") {
             val userEmail = call.parameters["email"]
@@ -335,7 +319,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             call.respond(HttpStatusCode.OK, AuthResponse(token))
         }
 
-        // Creates a new user with an encrypted password
         post("/signup") {
             val request = call.receiveNullable<AuthRequest>() ?: kotlin.run {
                 call.respond(HttpStatusCode.BadRequest)
@@ -375,67 +358,124 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
             }
         }
 
-        authenticate {
-            post("changeEmail") {
-                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
-                    dao.getUserByEmail(mail)?.let {
-                        val newEmail = call.receiveText()
-                        return@post call.respondHtml(status = HttpStatusCode.OK) {
+        get("/changeEmail/{oldmail}/{newmail}") {
+            val oldMail = call.parameters["oldmail"]!!
+            val newMail = call.parameters["newmail"]!!
 
-                            head {
-                                title { +"Success Validation" }
-                                style {
-                                    unsafe {
-                                        raw(
-                                                """
-                       body {
-                           font-family: 'Arial', sans-serif;
-                           background-color: #f4f4f4;
-                           text-align: center;
-                           padding: 20px;
-                       }
-                       h1 {
-                           color: #ff7900;
-                       }
-                       p {
-                           font-size: 18px;
-                           color: #333;
-                       }
-                       """
-                                        )
-                                    }
-                                }
-                            }
-                            body {
-                                h1 {
-                                    +"Thanks for verificate your new email, your email $mail has been changed to $newEmail"
-                                }
-                                p {
-                                    +"Now you can return to the app, to log in."
-                                }
+            return@get call.respondHtml(status = HttpStatusCode.OK) {
 
-                                script {
-                                    unsafe {
-                                        raw(
-                                                """
-                                function sendEmail() {
-                                    var url = 'http://89.47.29.153:27031/users/changeEmail/$newEmail';
-                                    fetch(url, {
-                                        method: 'PATCH',
-                                        body: $mail
-                                    })
-                                }
+                head {
+                    title { +"Success Validation" }
+                    style {
+                        unsafe {
+                            raw(
                                 """
-                                        )
-                                        +"sendEmail()"
-                                    }
-
-                                }
-                            }
+                   body {
+                       font-family: 'Arial', sans-serif;
+                       background-color: #f4f4f4;
+                       text-align: center;
+                       padding: 20px;
+                   }
+                   h1 {
+                       color: #ff7900;
+                   }
+                   p {
+                       font-size: 18px;
+                       color: #333;
+                   }
+                   """
+                            )
                         }
                     }
-                    return@post call.respond(HttpStatusCode.NotFound)
                 }
+                body {
+                    h1 {
+                        +"Thanks for verificate your new email, your email $oldMail has been changed to $newMail"
+                    }
+                    p {
+                        +"Now you can return to the app, to log in."
+                    }
+
+                    script {
+                        unsafe {
+                            raw(
+                                """
+                            function sendEmail() {
+                                var url = 'http://89.47.29.153:27031/users/changeEmail/$newMail';
+                                fetch(url, {
+                                    method: 'PATCH',
+                                    body: $oldMail
+                                })
+                            }
+                            """
+                            )
+                            +"sendEmail()"
+                        }
+
+                    }
+                }
+            }
+            return@get call.respond(HttpStatusCode.NotFound)
+        }
+
+        patch("/changeEmail/{newEmail}") {
+            val newEmail = call.parameters["newEmail"]
+            val oldEmail = call.receiveText()
+            if (newEmail.isNullOrBlank()) return@patch call.respondText(
+                "[ERROR] No valid email has been entered.",
+                status = HttpStatusCode.BadRequest
+            )
+
+            dao.updateUserEmail(oldEmail, newEmail)
+
+            return@patch call.respondText("[SUCCESS] User have been validated", status = HttpStatusCode.Accepted)
+        }
+
+        authenticate {
+
+            get("verifyPassword") {
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
+                    val password = call.receiveText()
+                    dao.getUserByEmail(mail)?.let { user->
+                        val isValidPass = hashingService.verify(
+                            password,
+                            SaltedHash(user.userPass, user.userSalt)
+                        )
+                        if (!isValidPass) {
+                            call.respond(HttpStatusCode.Unauthorized, "Incorrect password")
+                            return@get
+                        }
+                        return@get call.respond(true)
+                    }
+                }
+            }
+
+            patch("/setNewPassword") {
+                call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
+                    val request = call.receiveNullable<Map<String, String>>()?: kotlin.run{
+                        call.respond(HttpStatusCode.BadRequest, "The request is null")
+                        return@patch
+                    }
+
+                    dao.getUserByEmail(mail)?.let { user->
+                        val currentPassword = request["CurrentPassword"]!!
+                        val isValidPass = hashingService.verify(
+                            currentPassword,
+                            SaltedHash(user.userPass, user.userSalt)
+                        )
+                        if (!isValidPass) {
+                            call.respond(HttpStatusCode.Unauthorized, "Incorrect password")
+                            return@patch
+                        }
+
+                        val newPassword = request["NewPassword"]!!
+                        val saltedHash = hashingService.generateSaltedHash(newPassword)
+                        dao.updateUserPassword(mail, saltedHash.hash, saltedHash.salt)
+                        call.respond(HttpStatusCode.OK, "Password updated")
+                        return@patch
+                    }
+                }
+                return@patch call.respond(HttpStatusCode.NotFound)
             }
 
             get("loggedUser") {
@@ -448,6 +488,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 }
                 return@get call.respond(HttpStatusCode.NotFound)
             }
+
             get {
                 val allUsers = dao.getAllUsers()
 
