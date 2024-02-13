@@ -395,7 +395,6 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     p {
                         +"Now you can return to the app, to log in."
                     }
-
                     script {
                         unsafe {
                             raw(
@@ -404,7 +403,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                                 var url = 'http://89.47.29.153:27031/users/changeEmail/$newMail';
                                 fetch(url, {
                                     method: 'PATCH',
-                                    body: $oldMail
+                                    body: '$oldMail'
                                 })
                             }
                             """
@@ -415,37 +414,37 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                     }
                 }
             }
-            return@get call.respond(HttpStatusCode.NotFound)
         }
 
         patch("/changeEmail/{newEmail}") {
             val newEmail = call.parameters["newEmail"]
             val oldEmail = call.receiveText()
+
             if (newEmail.isNullOrBlank()) return@patch call.respondText(
                 "[ERROR] No valid email has been entered.",
                 status = HttpStatusCode.BadRequest
             )
-
             dao.updateUserEmail(oldEmail, newEmail)
 
-            return@patch call.respondText("[SUCCESS] User have been validated", status = HttpStatusCode.Accepted)
+            return@patch call.respondText("[SUCCESS] User email changed from $oldEmail to $newEmail", status = HttpStatusCode.Accepted)
         }
 
         authenticate {
 
-            get("verifyPassword") {
+            post("/verifyPassword") {
                 call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
-                    val password = call.receiveText()
+                    val password = call.receiveText().replace("\"","")
+
                     dao.getUserByEmail(mail)?.let { user->
+
                         val isValidPass = hashingService.verify(
                             password,
                             SaltedHash(user.userPass, user.userSalt)
                         )
                         if (!isValidPass) {
-                            call.respond(HttpStatusCode.Unauthorized, "Incorrect password")
-                            return@get
+                            return@post call.respond(HttpStatusCode.Unauthorized, true)
                         }
-                        return@get call.respond(true)
+                        return@post call.respond(HttpStatusCode.OK, true)
                     }
                 }
             }
@@ -478,7 +477,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                 return@patch call.respond(HttpStatusCode.NotFound)
             }
 
-            get("loggedUser") {
+            get("/loggedUser") {
                 // hay que mandar Authorization header con Bearer token
                 call.principal<JWTPrincipal>()?.getClaim("userEmail", String::class)?.let { mail ->
                     dao.getUserByEmail(mail)?.let { userInfo ->

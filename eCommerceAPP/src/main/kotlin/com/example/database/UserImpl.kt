@@ -164,7 +164,7 @@ class UserImpl(private val connection: java.sql.Connection) : UserDao {
                 "userPass = ?, userSalt = ?" +
                 " WHERE userEmail = ?"
 
-        try {
+        return try {
             val preparedUpdate = connection.prepareStatement(sentenceUpdate)
 
             preparedUpdate.setString(1, password)
@@ -174,39 +174,39 @@ class UserImpl(private val connection: java.sql.Connection) : UserDao {
             preparedUpdate.executeUpdate()
             // Close the sentence
             preparedUpdate.close()
-            return true
+            true
         } catch (e: SQLException) {
             println("[ERROR] Failed changing password. | Error Code:${e.errorCode}: ${e.message}")
-            return false
+            false
         }
     }
 
     override fun updateUserValidation(userEmail: String, validation: Boolean): Boolean{
         val sentencePatch = "UPDATE user_info SET userValidated = ? WHERE userEmail = ?"
-        try {
+        return try {
             val preparedUpdate = connection.prepareStatement(sentencePatch)
             preparedUpdate.setBoolean(1, validation)
             preparedUpdate.setString(2, userEmail)
             preparedUpdate.executeUpdate()
             preparedUpdate.close()
-            return true
+            true
         } catch (e: SQLException){
             println("[ERROR] Failed updating UserInfo | Error Code:${e.errorCode}: ${e.message}")
-            return false
+            false
         }
     }
     override fun updateUserEmail(oldEmail: String, newEmail: String): Boolean{
         val sentencePatch = "UPDATE user_info SET userEmail = ? WHERE userEmail = ?"
-        try {
+        return try {
             val preparedUpdate= connection.prepareStatement(sentencePatch)
             preparedUpdate.setString(1, newEmail)
             preparedUpdate.setString(2, oldEmail)
             preparedUpdate.executeUpdate()
             preparedUpdate.close()
-            return true
+            true
         } catch (e: SQLException){
             println("[ERROR] Failed updating UserInfo | Error Code:${e.errorCode}: ${e.message}")
-            return false
+            false
         }
     }
 
