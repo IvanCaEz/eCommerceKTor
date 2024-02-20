@@ -73,7 +73,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                             raw(
                                 """
                                 function sendEmail() {
-                                    var url = 'http://89.47.29.153:27031/users/validateEmail/$userEmail';
+                                    var url = 'http://0.0.0.0:27031/users/validateEmail/$userEmail';
                                     fetch(url, {
                                         method: 'PATCH'
                                     })
@@ -400,7 +400,7 @@ fun Route.userRoutes(hashingService: HashingService, tokenService: TokenService,
                             raw(
                                 """
                             function sendEmail() {
-                                var url = 'http://89.47.29.153:27031/users/changeEmail/$newMail';
+                                var url = 'http://0.0.0.0:27031/users/changeEmail/$newMail';
                                 fetch(url, {
                                     method: 'PATCH',
                                     body: '$oldMail'
